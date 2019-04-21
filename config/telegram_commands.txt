@@ -1,0 +1,7 @@
+Copy and paste this to BotFather to setup the bot commands
+
+start - Saluda y da información inicial
+signup - Registra y actualiza tus datos
+order_show - Revisa tu pedido
+order_help - Ayuda: ¿Cómo modificar tu pedido?
+order_confirm - Confirma tu pedido para que empecemos a prepararlo

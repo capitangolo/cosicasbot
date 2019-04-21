@@ -1,0 +1,27 @@
+# if not temporder.confirmed
+Si quieres cambiar el número de alguno de los productos, escríbeme uno de los siguientes comandos:
+/order_keychain <cantidad>
+/order_figurine7 <cantidad>
+/order_figurine10 <cantidad>
+/order_coin <cantidad>
+/order_extras <extras>
+
+Donde <cantidad> es el número de unidades de ese producto.
+Por ejemplo, si quieres 10 llaveros escríbeme:
+
+/order_keychain 10
+
+Donde <extras> nos puedes escribir qué es lo que quieres:
+
+/order_extras Quiero 10 llaveros de pikachu y 20 de treecko, os quiero mucho.
+
+/order_extras Envío con las chapas
+# else
+Has confirmado el pedido y no puedes hacer ningún cambio en él.
+
+El estado actual de tu pedido es: {{ temporder.status }}
+
+Si quieres más información sobre el pedido, ejecuta /order_show
+
+Si tienes alguna duda sobre tu pedido, ponte en contacto con @CosicasCo y mi compañeros humanos te asistirán :).
+# endif

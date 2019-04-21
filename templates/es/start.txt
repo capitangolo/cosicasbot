@@ -1,0 +1,5 @@
+Hola {{ chat.username() }}!!
+
+Soy {{ model.cfg.botname }}, asistente de compras. Conmigo podrás consultar el catálogo de varias tiendas y realizar compras.
+
+Usa /start para mostrar este mensaje.

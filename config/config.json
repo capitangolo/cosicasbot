@@ -1,0 +1,13 @@
+{
+  "botname": "CosicasBot",
+
+  "db_url": "mysql+pymysql://user:password@host/database",
+  "templates_folder": "./templates/es/",
+
+  "groups_admin_id": 1,
+  "groups_allusers_id": 2,
+
+  "telegram_botname": "MyTelegramBotUserName",
+  "telegram_apikey": "000000000:TelegramBotAPIKEY"
+}
+

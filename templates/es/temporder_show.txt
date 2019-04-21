@@ -1,0 +1,73 @@
+Tengo apuntado un pedido tuyo con los siguientes productos:
+
+# if temporder.keychain_count > 0
+{{ temporder.keychain_count }}x Llaveros Bagon x {{ temporder.keychain_unit_price() }}€
+Subtotal: {{ temporder.keychain_price() | round(2) }}€
+
+# endif
+# if temporder.figurine7_count > 0
+{{ temporder.figurine7_count }}x Figuras Bagon 7cm x {{ temporder.figurine7_unit_price() }}€
+Subtotal: {{ temporder.figurine7_price() | round(2) }}€
+
+# endif
+# if temporder.figurine10_count > 0
+{{ temporder.figurine10_count }}x Figuras Bagon 10cm x {{ temporder.figurine10_unit_price() }}€
+Subtotal: {{ temporder.figurine10_price() | round(2) }}€
+
+# endif
+# if temporder.coin_count > 0
+{{ temporder.coin_count }}x Monedas Bagon x {{ temporder.coin_unit_price() }}€
+Subtotal: {{ temporder.coin_price() | round(2) }}€
+
+# endif
+
+# if temporder.extras_description
+Y además, {{ temporder.extras_price | round(2) }}€ en extras:
+{{ temporder.extras_description }}
+# endif
+# set subtotal = temporder.subtotal()
+# set total = temporder.total()
+# if subtotal == 0
+Hmm… no tengo ningún producto apuntado
+# endif
+
+-----------------------------------
+
+Subtotal: {{ subtotal | round(2) }}€
+Gastos de envío: {{ temporder.shipping_price() }}€
+Total sin IVA: {{ total | round(2) }}€
+Total con IVA: {{ (total * 1.21)  | round(2) }}€
+
+# if not temporder.confirmed
+Cuando estés de acuerdo con todo, ejecuta el comando /order_confirm y en breves te prepararemos la factura.
+
+Una vez confirmes el pedido no podrás hacer cambios en él.
+
+Si quieres modificar el pedido, envíame /order_help y te explicaré cómo hacerlo.
+# else
+Has confirmado el pedido y no puedes hacer ningún cambio en él.
+
+El estado actual de tu pedido es: {{ temporder.status }}
+
+Si tienes alguna duda sobre tu pedido, ponte en contacto con @CosicasCo y mi compañeros humanos te asistirán :).
+
+-----------------------------------
+
+Emitiremos la factura a:
+{{ user.name }} {{ user.lastname }}
+{{ user.vat_id }}
+{{ user.invoice_address }}
+
+Te enviaremos la factura por email a: {{ user.email_address }}
+
+En cuanto pagues la factura te prepararemos todo y te lo enviaremos.
+
+Te lo enviaremos a:
+{{ user.name }} {{ user.lastname }}
+{{ user.phone_number }}
+{{ user.email_address }}
+{{ user.shipping_address }}
+
+Si quieres cambiar alguno de estos datos, ejecuta el comando /signup.
+
+# endif
