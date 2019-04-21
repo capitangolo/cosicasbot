@@ -1,0 +1,8 @@
+# if userdata
+{{ userdata }}
+
+# endif
+
+¿Cuál es tu número de teléfono?
+
+Lo necesitaré para contactar contigo, también para que el repartidor te pueda llamar si tiene problemas para entregarte un pedido.

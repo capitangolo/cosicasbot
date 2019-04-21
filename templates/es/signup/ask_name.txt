@@ -1,0 +1,15 @@
+# if show_preamble
+Para poder trabajar juntos necesito unos cuantos datos tuyos:
+
+- Nombre
+- Contacto
+- Datos de facturación
+- Datos de envío
+
+Vamos poco a poco, pero primero:
+
+# endif
+
+¿Cuál es tu nombre?
+
+Tranquilo si te equivocas, podrás editar tus datos cuando acabemos el registro.

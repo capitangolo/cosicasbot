@@ -28,7 +28,7 @@ class Model:
         )
 
         # User Sessions
-        self.user_sessions = context.UserContexts()
+        self.user_sessions = context.UserContexts(user_id_property = 'user_id')
         self.visitor_sessions = {}
 
     def db(self):
@@ -46,5 +46,5 @@ class Model:
 
     def visitor_ctxt(self, interface, user_id):
         if interface not in self.visitor_sessions:
-            self.visitor_sessions[interface] = context.UserContexts()
+            self.visitor_sessions[interface] = context.UserContexts(user_id_property = 'visitor_id')
         return self.visitor_sessions[interface].context_for(user_id)

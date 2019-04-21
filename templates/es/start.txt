@@ -6,6 +6,7 @@ Usa /start para mostrar este mensaje.
 
 # if not ctxt.user
 No estás registrado 🤔. De momento puedes cotillear algunas tiendas, pero tendrás que registrarte para comprar
+
 # endif
-{{ '' }}
+
 ¿Qué quieres hacer?

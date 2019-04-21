@@ -1,0 +1,10 @@
+# if userdata
+{{ userdata }}
+
+Ahora necesito tus datos de contacto.
+
+# endif
+
+¿Cuál es tu dirección de email?
+
+La necesitaré para contactar si hay algún problema con un pedido, para enviarte las facturas y para que te lleguen los números de seguimiento de los envíos.

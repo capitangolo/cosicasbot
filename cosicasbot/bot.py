@@ -10,8 +10,6 @@ class Bot:
 
         self.interfaces = []
 
-        self.sessions = {}
-
         self.conversations = {}
 
 
@@ -44,6 +42,7 @@ class Bot:
 
 
     def register_command(self, command):
+        # TODO: Check for duplicates
         self.m.log.info('Registering command: {}'.format(command.__name__))
         for interface in self.interfaces:
             interface.register_command(command.__name__, command)
@@ -57,27 +56,45 @@ class Bot:
             thread.start()
 
 
-    def session_for(self, user_id):
-        if user_id not in self.sessions:
-            self.sessions[user_id] = {}
-
-        return self.sessions[user_id]
-
-
-    def handle_text(self, model, ctxt, chat, text):
-        if ctxt.next_text:
-            ctxt.next_text(model, ctxt, chat, text)
-
-
-    def handle_photo(self, model, ctxt, chat, photo):
-        if ctxt.next_photo:
-            ctxt.next_photo(model, ctxt, chat, photo)
+    def handle_command(self, ctxt, chat, callback, args):
+        # Don't execute commands when we are expecting a text or a photo
+        # Allow, howhever to execute whitelisted options.
+        if self.__expecting_response(ctxt) and ctxt.whitelist_options:
+            blocked = True
+            for option in ctxt.whitelist_options:
+                if option[1] == callback:
+                    blocked = False
+                    break
+            if blocked:
+                return
+        callback(self.m, ctxt, chat, args)
 
 
-    def handle_inline(self, model, ctxt, chat, text):
-        if ctxt.next_text or ctxt.next_photo:
+    def handle_text(self, ctxt, chat, text):
+        # Process only if we are expecting it
+        if not ctxt.next_text:
             return
 
+        # If it's a whitelisted option,
+        # execute the option instead of processing the text
+        if ctxt.whitelist_options:
+            for option in ctxt.whitelist_options:
+                if option[0] == text:
+                    option[1](self.m, ctxt, chat, text)
+                    return
+
+        ctxt.next_text(self.m, ctxt, chat, text)
+
+
+    def handle_photo(self, ctxt, chat, photo):
+        # Process only if we are expecting it
+        if not ctxt.next_photo:
+            return
+
+        ctxt.next_photo(self.m, ctxt, chat, photo)
+
+
+    def handle_inline(self, ctxt, chat, text):
         parts = text.split(' ', 2)
         conversation_name = parts[0]
         command_name = parts[1]
@@ -93,5 +110,9 @@ class Bot:
 
         for command in commands:
             if command.__name__ == command_name:
-                command(model, ctxt, chat, args)
+                self.handle_command(ctxt, chat, command, args)
                 return
+
+
+    def __expecting_response(self, ctxt):
+        return ctxt.next_text or ctxt.next_photo

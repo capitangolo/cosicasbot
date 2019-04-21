@@ -71,13 +71,23 @@ class User(Base):
 
 
     @classmethod
-    def user_by_telegram_id(cls, conn, user_id):
+    def default_user(cls):
+        return User()
+
+
+    @classmethod
+    def by_id(cls, conn, user_id):
+        return conn.query(User).get(user_id)
+
+
+    @classmethod
+    def by_telegram_id(cls, conn, user_id):
         query = conn.query(User).filter_by(telegram_id=user_id)
         return query.first()
 
 
     @classmethod
-    def user_by_telegram_handle(cls, conn, handle):
+    def by_telegram_handle(cls, conn, handle):
         query = conn.query(User).filter_by(telegram_handle=handle)
         return query.first()
 

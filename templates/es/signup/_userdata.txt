@@ -1,0 +1,29 @@
+Estos son los datos que tengo sobre tí:
+
+{{'#'}}{{ user.id }}: {{ user.name}} {%if user.lastname %}{{ user.lastname }}{%endif%}
+# if user.telegram_id
+
+Telegram user #{{ user.telegram_id }} {{ user.telegram_handle }}
+
+# endif
+# if user.email_address
+eMail: {{ user.email_address }}
+# endif
+# if user.phone_number
+teléfono: {{ user.phone_number }}
+# endif
+# if user.vat_id
+Número de iva: {{ user.vat_id }}
+
+# endif
+# if user.invoice_address
+
+Dirección de facturación:
+{{ user.invoice_address }}
+
+# endif
+# if user.shipping_address
+Dirección de envío:
+{{ user.shipping_address }}
+
+# endif

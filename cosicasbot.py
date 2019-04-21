@@ -20,7 +20,8 @@ INTERFACES = [
 ]
 
 CONVERSATIONS = [
-    start
+    start,
+    signup
 ]
 
 

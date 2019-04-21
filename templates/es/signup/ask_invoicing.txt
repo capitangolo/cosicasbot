@@ -1,0 +1,9 @@
+# if userdata
+{{ userdata }}
+
+# endif
+
+¿Cuál es la dirección que he de poner en las facturas?
+
+Acuérdate de poner:
+Calle, número, piso, letra, código postal y población.

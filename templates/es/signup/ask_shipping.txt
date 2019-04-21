@@ -1,0 +1,9 @@
+# if userdata
+{{ userdata }}
+
+# endif
+
+¿A qué dirección he de enviar los pedidos?
+
+Acuérdate de poner:
+Calle, número, piso, letra, código postal y población.

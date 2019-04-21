@@ -54,79 +54,72 @@ class Telegram:
     def __handle_command(self, bot, update, callback):
         ctxt = self.__ctxt_for(update.effective_user.id, update.effective_user.username)
 
-        if ctxt.next_text or ctxt.next_photo:
-            return
-
         text = update.message.text
         args = text.split(' ', 1)[-1]
 
-        chat = TelegramChat(bot, self.m, update)
-        callback(self.m, ctxt, chat, args)
+        chat = TelegramChat(ctxt, bot, self.m, update)
+        self.bot.handle_command(ctxt, chat, callback, args)
 
 
-    def __handle_text(self, bot, update, text=None):
+    def __handle_text(self, bot, update):
         ctxt = self.__ctxt_for(update.effective_user.id, update.effective_user.username)
 
-        if ctxt.next_photo:
-            return
-
-        if not text:
-            text = update.message.text
-        chat = TelegramChat(bot, self.m, update)
-        self.bot.handle_text(self.m, ctxt, chat, text)
+        text = update.message.text
+        chat = TelegramChat(ctxt, bot, self.m, update)
+        self.bot.handle_text(ctxt, chat, text)
 
 
     def __handle_photo(self, bot, update):
         ctxt = self.__ctxt_for(update.effective_user.id, update.effective_user.username)
 
-        if ctxt.next_text:
-            return
-
         photo = update.message.photo
-        chat = TelegramChat(bot, self.m, update)
-        self.bot.handle_photo(self.m, ctxt, chat, photo)
+        chat = TelegramChat(ctxt, bot, self.m, update)
+        self.bot.handle_photo(ctxt, chat, photo)
 
 
     def __handle_callback(self, bot, update):
         ctxt = self.__ctxt_for(update.effective_user.id, update.effective_user.username)
 
         text = update.callback_query.data
-        chat = TelegramChat(bot, self.m, update)
-        self.bot.handle_inline(bot, ctxt, chat, text)
+        chat = TelegramChat(ctxt, bot, self.m, update)
+        self.bot.handle_inline(ctxt, chat, text)
 
 
     def __ctxt_for(self, telegram_user_id, telegram_user_name):
-        user = self.__user_for(telegram_user_id, telegram_user_name)
-        if user:
-            ctxt = self.m.ctxt(user.id)
-            ctxt.user = user
+        user_id = self.__user_id_for(telegram_user_id, telegram_user_name)
+        if user_id:
+            ctxt = self.m.ctxt(user_id)
             return ctxt
         else:
             return self.m.visitor_ctxt('telegram', telegram_user_id)
 
 
-    def __user_for(self, user_id, user_name):
+    def __user_id_for(self, user_t_id, user_t_name):
+        user_id = None
+
         db = self.m.db()
-        user = User.user_by_telegram_id(db, user_id)
+        user = User.by_telegram_id(db, user_t_id)
 
         # Legacy to support first users registered.
         # Will be removed soon
         if not user:
-            user = User.user_by_telegram_handle(db, '@' + user_name)
+            user = User.by_telegram_handle(db, '@' + user_t_name)
             if user:
-                user.telegram_id = user_id
+                user.telegram_id = user_t_id
                 db.commit()
-                id = user.id
         # end Legacy
 
-        db.close()
+        if user:
+            user_id = user.id
 
-        return user
+        db.close()
+        return user_id
 
 
 class TelegramChat:
 
-    def __init__(self, bot, model, update):
+    def __init__(self, ctxt, bot, model, update):
+        self.ctxt = ctxt
         self.bot = bot
         self.update = update
         self.model = model
@@ -150,6 +143,7 @@ class TelegramChat:
 
     def replyText(self, text, reply_options=None, inline_args=None):
         reply_markup = ReplyKeyboardRemove()
+        keyboard = None
 
         if inline_args != None:
             keyboard = self.__convert_inline_keyboard(reply_options, inline_args)
@@ -158,6 +152,9 @@ class TelegramChat:
         elif reply_options != None:
             keyboard = self.__convert_reply_keyboard(reply_options)
             reply_markup=ReplyKeyboardMarkup(keyboard)
+
+        if keyboard:
+            self.ctxt.whitelist(reply_options)
 
         self.update.effective_chat.send_message(
             text,
@@ -173,6 +170,7 @@ class TelegramChat:
                 new_row.append(KeyboardButton(text=option[0]))
             keyboard.append(new_row)
         return keyboard
+
 
     def __convert_inline_keyboard(self, options, inline_args):
         keyboard = []
@@ -192,8 +190,12 @@ class TelegramChat:
         return keyboard
 
 
+    def render(self, template_name, **kwargs):
+        return self.model.render(template_name, self.format(), **kwargs)
+
+
     def replyTemplate(self, template_name, reply_options=None, inline_args=None, **kwargs):
-        text = self.model.render(template_name, self.format(), **kwargs)
+        text = self.render(template_name, **kwargs)
         self.replyText(text, reply_options, inline_args)
 
 
@@ -203,3 +205,11 @@ class TelegramChat:
                 if option[0].lower() == input.strip().lower():
                     return option[1]
         return None
+
+
+    # ========
+    # Entities
+    # ========
+    def fill_user(self, user):
+        user.telegram_id = self.update.effective_user.id
+        user.telegram_handle = self.username()

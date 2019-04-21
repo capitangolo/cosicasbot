@@ -1,0 +1,10 @@
+# if userdata
+{{ userdata }}
+
+Ahora necesito tus datos de facturación.
+
+# endif
+
+¿Cuál es tu Número de Identificación Fiscal?
+
+Tu NIF, o DNI, o el CIF de tu empresa.

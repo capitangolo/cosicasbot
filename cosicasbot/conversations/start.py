@@ -2,50 +2,49 @@
 # -*- coding: utf-8 -*-
 
 from ..filters import *
+from . import signup
+from ..model.entities import *
 
 __name__ = 'Start'
-
 
 def _commands():
     return [
         start,
-        count,
-        secret,
-        signup,
+        browse_catalogs,
+        cancel,
+
+# Test commands
+        count,      # Test sessions
+        secret      # Test filters
 
 # Private commands
-        _do_nothing,
-        _browse_catalogs
     ]
 
 
-def _menu_start_options(model, ctxt):
-    t = model.cfg.t
+def _menu_start_options(t, ctxt):
     options = [
-        [[t.action_do_nothing, _do_nothing]],
-        [[t.action_browse_catalogs, _browse_catalogs]]
+        [[t.action_do_nothing, cancel]],
+        [[t.action_browse_catalogs, browse_catalogs]]
     ]
 
-    if not ctxt.user:
-        options.append(
-            [[t.action_signup, signup]]
-        )
+    if not ctxt.user_id:
+        options.append( [[t.action_signup, signup.signup]] )
+    else:
+        options.append( [[t.action_signup_edit, signup.signup]] )
+
     return options
 
 def start(model, ctxt, chat, args):
-    chat.replyTemplate('start', _menu_start_options(model, ctxt), [], model=model, ctxt=ctxt, chat=chat)
+    chat.replyTemplate('start', _menu_start_options(model.cfg.t, ctxt), [], model=model, ctxt=ctxt, chat=chat)
 
 
-def _do_nothing(model, ctxt, chat, text):
+def cancel(model, ctxt, chat, text):
+    ctxt.clean_next()
     chat.replyText('Genial, cuando quieras hablar conmigo usa /start.')
 
 
-def _browse_catalogs(model, ctxt, chat, text):
+def browse_catalogs(model, ctxt, chat, text):
     chat.replyText('Estas son tus tiendas:')
-
-
-def signup(model, ctxt, chat, text):
-    chat.replyText('¡Vamos a registrarnos!')
 
 
 def count(model, ctxt, chat, args):
@@ -58,5 +57,8 @@ def count(model, ctxt, chat, args):
 
 @requires_registered
 def secret(model, ctxt, chat, args):
-    chat.replyText('¡Hola {} {}!'.format(ctxt.user.name, ctxt.user.lastname))
+    conn = model.db()
+    user = User.by_id(conn, ctxt.user_id)
+    chat.replyText('¡Hola {} {}!'.format(user.name, user.lastname))
+    conn.close()
 
