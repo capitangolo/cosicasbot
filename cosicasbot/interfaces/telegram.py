@@ -16,12 +16,13 @@ class Telegram:
         return model.cfg.telegram_apikey
 
 
-    def __init__(self, model, text_handler, photo_handler):
-        self.m = model
+    def __init__(self, bot):
+        self.bot = bot
+        self.m = bot.m
+
         self.updater = Updater(self.m.cfg.telegram_apikey)
         self.dp = self.updater.dispatcher
-        self.text_handler = text_handler
-        self.photo_hander = photo_handler
+
         self.__register_handlers(self.dp)
 
 
@@ -56,8 +57,11 @@ class Telegram:
         if ctxt.next_text or ctxt.next_photo:
             return
 
+        text = update.message.text
+        args = text.split(' ', 1)[-1]
+
         chat = TelegramChat(bot, self.m, update)
-        callback(self.m, ctxt, chat)
+        callback(self.m, ctxt, chat, args)
 
 
     def __handle_text(self, bot, update, text=None):
@@ -69,7 +73,7 @@ class Telegram:
         if not text:
             text = update.message.text
         chat = TelegramChat(bot, self.m, update)
-        self.text_handler(self.m, ctxt, chat, text)
+        self.bot.handle_text(self.m, ctxt, chat, text)
 
 
     def __handle_photo(self, bot, update):
@@ -80,12 +84,15 @@ class Telegram:
 
         photo = update.message.photo
         chat = TelegramChat(bot, self.m, update)
-        self.photo_handler(self.m, ctxt, chat, photo)
+        self.bot.handle_photo(self.m, ctxt, chat, photo)
 
 
     def __handle_callback(self, bot, update):
+        ctxt = self.__ctxt_for(update.effective_user.id, update.effective_user.username)
+
         text = update.callback_query.data
-        self.__handle_text(bot, update, text)
+        chat = TelegramChat(bot, self.m, update)
+        self.bot.handle_inline(bot, ctxt, chat, text)
 
 
     def __ctxt_for(self, telegram_user_id, telegram_user_name):
@@ -141,54 +148,58 @@ class TelegramChat:
         return '/' + command
 
 
-    def replyText(self, text, options=None):
-        if not options:
-            self.update.effective_chat.send_message(
-                text,
-                reply_markup=ReplyKeyboardRemove()
-            )
-        else:
-            keyboard = self.__convert_keyboard(options)
-            if options['inline']:
-                self.update.effective_chat.send_message(
-                    text,
-                    reply_markup=InlineKeyboardMarkup(keyboard)
-                )
-            else:
-                self.update.effective_chat.send_message(
-                    text,
-                    reply_markup=ReplyKeyboardMarkup(keyboard)
-                )
+    def replyText(self, text, reply_options=None, inline_args=None):
+        reply_markup = ReplyKeyboardRemove()
+
+        if inline_args != None:
+            keyboard = self.__convert_inline_keyboard(reply_options, inline_args)
+            reply_markup=InlineKeyboardMarkup(keyboard)
+
+        elif reply_options != None:
+            keyboard = self.__convert_reply_keyboard(reply_options)
+            reply_markup=ReplyKeyboardMarkup(keyboard)
+
+        self.update.effective_chat.send_message(
+            text,
+            reply_markup=reply_markup
+        )
 
 
-    def __convert_keyboard(self, options):
+    def __convert_reply_keyboard(self, options):
         keyboard = []
-        for row in options['list']:
+        for row in options:
             new_row = []
             for option in row:
-                if options['inline']:
-                    button = InlineKeyboardButton(text=option[0], callback_data=option[1].__name__)
-                    new_row.append(button)
-                else:
-                    new_row.append(KeyboardButton(text=option[0]))
+                new_row.append(KeyboardButton(text=option[0]))
+            keyboard.append(new_row)
+        return keyboard
+
+    def __convert_inline_keyboard(self, options, inline_args):
+        keyboard = []
+        for row in options:
+            new_row = []
+            for option in row:
+                conversation = option[1].__module__
+                command = option[1].__name__
+
+                data = "{} {}".format(conversation, command)
+                if inline_args:
+                    data += ' ' + ' '.join(inline_args)
+
+                button = InlineKeyboardButton(text=option[0], callback_data=data)
+                new_row.append(button)
             keyboard.append(new_row)
         return keyboard
 
 
-    def replyTemplate(self, template_name, options=None, **kwargs):
+    def replyTemplate(self, template_name, reply_options=None, inline_args=None, **kwargs):
         text = self.model.render(template_name, self.format(), **kwargs)
-        self.replyText(text, options)
+        self.replyText(text, reply_options, inline_args)
 
 
-    def callback_for_input(self, options, input):
-        for row in options['list']:
+    def callback_for_input(self, reply_options, input):
+        for row in reply_options:
             for option in row:
-                key = ''
-                if options['inline']:
-                    key = option[1].__name__.lower()
-                else:
-                    key = option[0].lower()
-                print(options['inline'])
-                if key == input.strip().lower():
+                if option[0].lower() == input.strip().lower():
                     return option[1]
         return None

@@ -44,7 +44,7 @@ def main():
     args = parse_args()
 
     logger.info('Reading config')
-    cfg = config.Config(args.config_file, logger)
+    cfg = config.Config(args.config_file, logger, '0')
 
     logger.info('Generating config files')
     templates_env = Environment(

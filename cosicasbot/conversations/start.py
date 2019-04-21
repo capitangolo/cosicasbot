@@ -10,44 +10,45 @@ def _commands():
     return [
         start,
         count,
-        secret
+        secret,
+        signup,
+
+# Private commands
+        _do_nothing,
+        _browse_catalogs
     ]
 
 
-def _menu_start_options():
-    return {
-        'list': [
-            [['A', _menu_a]],
-            [['B', _menu_b]],
-            [['C', _menu_c]]
-        ],
-        'inline': False
-    }
+def _menu_start_options(model, ctxt):
+    t = model.cfg.t
+    options = [
+        [[t.action_do_nothing, _do_nothing]],
+        [[t.action_browse_catalogs, _browse_catalogs]]
+    ]
+
+    if not ctxt.user:
+        options.append(
+            [[t.action_signup, signup]]
+        )
+    return options
+
+def start(model, ctxt, chat, args):
+    chat.replyTemplate('start', _menu_start_options(model, ctxt), [], model=model, ctxt=ctxt, chat=chat)
 
 
-def start(model, ctxt, chat):
-    ctxt.next_text = _process_menu
-    chat.replyTemplate('start', options=_menu_start_options(), model=model, ctxt=ctxt, chat=chat)
+def _do_nothing(model, ctxt, chat, text):
+    chat.replyText('Genial, cuando quieras hablar conmigo usa /start.')
 
 
-def _process_menu(model, ctxt, chat, text):
-    callback = chat.callback_for_input(_menu_start_options(), text)
-    if callback:
-        ctxt.next_text = None
-        callback(model, ctxt, chat, text)
+def _browse_catalogs(model, ctxt, chat, text):
+    chat.replyText('Estas son tus tiendas:')
 
 
-def _menu_a(model, ctxt, chat, text):
-    chat.replyText('Esto es A')
-
-def _menu_b(model, ctxt, chat, text):
-    chat.replyText('Esto es B')
-
-def _menu_c(model, ctxt, chat, text):
-    chat.replyText('Esto es C')
+def signup(model, ctxt, chat, text):
+    chat.replyText('¡Vamos a registrarnos!')
 
 
-def count(model, ctxt, chat):
+def count(model, ctxt, chat, args):
     if not ctxt.number:
         ctxt.number = 1
     else:
@@ -56,6 +57,6 @@ def count(model, ctxt, chat):
 
 
 @requires_registered
-def secret(model, ctxt, chat):
+def secret(model, ctxt, chat, args):
     chat.replyText('¡Hola {} {}!'.format(ctxt.user.name, ctxt.user.lastname))
 

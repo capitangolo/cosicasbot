@@ -42,7 +42,7 @@ def main():
     args = parse_args()
 
     logger.info('Reading configuration settings')
-    cfg = config.Config(args.config_file, logger)
+    cfg = config.Config(args.config_file, logger, VERSION)
 
     logger.info('Starting cosicasbot v{} for {}'.format(VERSION, cfg.botname))
 

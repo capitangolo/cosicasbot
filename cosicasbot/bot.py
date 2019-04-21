@@ -12,11 +12,13 @@ class Bot:
 
         self.sessions = {}
 
+        self.conversations = {}
+
 
     def load_interfaces(self, interface_classes):
         for interface_cls in interface_classes:
             if interface_cls.can_load(self.m):
-                interface = interface_cls(self.m, self.handle_text, self.handle_photo)
+                interface = interface_cls(self)
                 self.register_interface(interface)
 
 
@@ -32,6 +34,10 @@ class Bot:
 
     def register_conversation(self, conversation):
         self.m.log.info('Registering conversation: {}'.format(conversation.__name__))
+
+        self.conversations[conversation.__name__] = {
+            'commands': conversation._commands()
+        }
 
         for command in conversation._commands():
             self.register_command(command)
@@ -63,7 +69,29 @@ class Bot:
             ctxt.next_text(model, ctxt, chat, text)
 
 
-    def handle_photo(self):
+    def handle_photo(self, model, ctxt, chat, photo):
         if ctxt.next_photo:
-            ctxt.next_photo(model, ctxt, chat, text)
+            ctxt.next_photo(model, ctxt, chat, photo)
 
+
+    def handle_inline(self, model, ctxt, chat, text):
+        if ctxt.next_text or ctxt.next_photo:
+            return
+
+        parts = text.split(' ', 2)
+        conversation_name = parts[0]
+        command_name = parts[1]
+        args = None
+        if len(parts) > 2:
+            args = parts[2]
+
+        if conversation_name not in self.conversations:
+            return
+
+        conversation = self.conversations[conversation_name]
+        commands = conversation['commands']
+
+        for command in commands:
+            if command.__name__ == command_name:
+                command(model, ctxt, chat, args)
+                return
