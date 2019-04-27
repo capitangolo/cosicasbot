@@ -1,0 +1,5 @@
+{{ '#' }}{{ group['group'].id }} {{ group['group'].name }}:
+# for user in group['users']:
+  {% include 'admin/_user.txt' %}
+# endfor
+

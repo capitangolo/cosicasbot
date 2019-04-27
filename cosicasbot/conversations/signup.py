@@ -2,38 +2,20 @@
 # -*- coding: utf-8 -*-
 
 from ..filters import *
-from . import start
+from ..model.context import Conversation
 from ..model.entities import *
 
 __name__ = 'Signup'
 
 def _commands():
     return [
-        signup,
-
-    # Private commands
-        _signup_ask_name,
-        _signup_ask_lastname,
-        _signup_ask_email,
-        _signup_ask_phone,
-        _signup_ask_vat,
-        _signup_ask_invoicing,
-        _signup_ask_shipping,
-
-        _signup_name,
-        _signup_lastname,
-        _signup_email,
-        _signup_phone,
-        _signup_vat,
-        _signup_invoicing,
-        _signup_shipping
+        signup
     ]
 
 
 def _menu_registering_options(t, ctxt):
     options = [
-        [[t.action_start, start.start]],
-        [[t.action_cancel, start.cancel]]
+        [[t.action_back, signup]],
     ]
 
     return options
@@ -48,14 +30,21 @@ def _menu_registered_options(t, ctxt):
         [[t.action_signup_edit_vat, _signup_ask_vat]],
         [[t.action_signup_edit_invoicing, _signup_ask_invoicing]],
         [[t.action_signup_edit_shipping, _signup_ask_shipping]],
-        [[t.action_do_nothing, start.cancel]]
+        [[t.action_back, _end_signup]]
     ]
 
     return options
 
 
-def signup(model, ctxt, chat, args):
+def signup_conversation():
+    return Conversation(), signup
 
+
+def _end_signup(model, ctxt, chat, args):
+    ctxt.conversations.end(model, ctxt, chat, args)
+
+
+def signup(model, ctxt, chat, args):
     # If it's a new user, create the new user and start asking for data.
     # Else, let's see what data is missing.
     # If no data is missing, ask to edit the data.
@@ -70,7 +59,7 @@ def signup(model, ctxt, chat, args):
 
         # Migrate user to a new registered user context
         new_ctxt = model.ctxt(user.id)
-        for key, value in ctxt.getData().items():
+        for key, value in ctxt.get_data().items():
             if key == 'visitor_id':
                 continue
             setattr(new_ctxt, key, value)
@@ -108,44 +97,51 @@ def signup(model, ctxt, chat, args):
 
 @requires_registered
 def _signup_ask_name(model, ctxt, chat, text, initial_signup = False):
-    ctxt.next_text = _signup_name
+    chat.clean_options()
+    ctxt.conversations.current().next_text = _signup_name
     chat.replyTemplate('signup/ask_name', _menu_registering_options(model.cfg.t, ctxt), show_preamble=initial_signup)
     return
 
 
 @requires_registered
 def _signup_ask_lastname(model, ctxt, chat, text, userdata = None):
-    ctxt.next_text = _signup_lastname
+    chat.clean_options()
+    ctxt.conversations.current().next_text = _signup_lastname
     chat.replyTemplate('signup/ask_lastname', _menu_registering_options(model.cfg.t, ctxt), userdata=userdata)
 
 
 @requires_registered
 def _signup_ask_email(model, ctxt, chat, text, userdata = None):
-    ctxt.next_text = _signup_email
+    chat.clean_options()
+    ctxt.conversations.current().next_text = _signup_email
     chat.replyTemplate('signup/ask_email', _menu_registering_options(model.cfg.t, ctxt), userdata=userdata)
 
 
 @requires_registered
 def _signup_ask_phone(model, ctxt, chat, text, userdata = None):
-    ctxt.next_text = _signup_phone
+    chat.clean_options()
+    ctxt.conversations.current().next_text = _signup_phone
     chat.replyTemplate('signup/ask_phone', _menu_registering_options(model.cfg.t, ctxt), userdata=userdata)
 
 
 @requires_registered
 def _signup_ask_vat(model, ctxt, chat, text, userdata = None):
-    ctxt.next_text = _signup_vat
+    chat.clean_options()
+    ctxt.conversations.current().next_text = _signup_vat
     chat.replyTemplate('signup/ask_vat', _menu_registering_options(model.cfg.t, ctxt), userdata=userdata)
 
 
 @requires_registered
 def _signup_ask_invoicing(model, ctxt, chat, text, userdata = None):
-    ctxt.next_text = _signup_invoicing
+    chat.clean_options()
+    ctxt.conversations.current().next_text = _signup_invoicing
     chat.replyTemplate('signup/ask_invoicing', _menu_registering_options(model.cfg.t, ctxt), userdata=userdata)
 
 
 @requires_registered
 def _signup_ask_shipping(model, ctxt, chat, text, userdata = None):
-    ctxt.next_text = _signup_shipping
+    chat.clean_options()
+    ctxt.conversations.current().next_text = _signup_shipping
     chat.replyTemplate('signup/ask_shipping', _menu_registering_options(model.cfg.t, ctxt), userdata=userdata)
 
 

@@ -5,8 +5,14 @@
 action_start = '🏠 Volver al inicio'
 action_cancel = '❌ Cancelar'
 action_do_nothing = '🚶‍♀️ No hacer nada'
+action_back = '⬅️ Volver'
 
-# ACtions - Signup
+
+# Actions - Admin
+list_users = '👥 Listar usuarios'
+
+
+# Actions - Signup
 action_signup = '📝 Registrarse'
 action_signup_edit = '📝 Editar perfil'
 action_signup_edit_name = 'Cambiar nombre'
@@ -20,6 +26,7 @@ action_signup_edit_shipping = 'Cambiar dir. envío'
 
 # Actions - Catalog
 action_browse_catalogs = '🛍 Cotillear tiendas'
+
 
 # Errors - Filters
 error_require_user = 'Necesitas estar registrado para ejecutar {}'

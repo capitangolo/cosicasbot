@@ -12,7 +12,7 @@ import unicodedata
 from cosicasbot.model import context
 
 
-VERSION = '1.0.6'
+VERSION = '1.0.7'
 
 
 INTERFACES = [
@@ -21,7 +21,10 @@ INTERFACES = [
 
 CONVERSATIONS = [
     start,
-    signup
+    signup,
+    catalog,
+
+    admin
 ]
 
 
@@ -48,10 +51,10 @@ def main():
     logger.info('Starting cosicasbot v{} for {}'.format(VERSION, cfg.botname))
 
     logger.info('Loading model')
-    m = model.Model(logger, cfg)
+    m = model.Model(logger, cfg, start.start_conversation)
 
     logger.info('Loading bot')
-    bot = Bot(m)
+    bot = Bot(m, start.start)
     bot.load_interfaces(INTERFACES)
     bot.load_conversations(CONVERSATIONS)
     bot.start()

@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 class Model:
 
 
-    def __init__(self, logger, config):
+    def __init__(self, logger, config, default_conversation_generator):
         # Logger
         self.log = logger
 
@@ -28,7 +28,8 @@ class Model:
         )
 
         # User Sessions
-        self.user_sessions = context.UserContexts(user_id_property = 'user_id')
+        self.default_conversation_generator = default_conversation_generator
+        self.user_sessions = context.UserContexts(user_id_property = 'user_id', start = self.default_conversation_generator)
         self.visitor_sessions = {}
 
     def db(self):
@@ -46,5 +47,5 @@ class Model:
 
     def visitor_ctxt(self, interface, user_id):
         if interface not in self.visitor_sessions:
-            self.visitor_sessions[interface] = context.UserContexts(user_id_property = 'visitor_id')
+            self.visitor_sessions[interface] = context.UserContexts(user_id_property = 'visitor_id', start = self.default_conversation_generator)
         return self.visitor_sessions[interface].context_for(user_id)

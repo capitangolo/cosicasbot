@@ -4,7 +4,7 @@
 from ..model.entities import *
 from functools import partial
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
-from telegram import MessageEntity, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton
+from telegram import MessageEntity, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, TelegramError
 import unicodedata
 
 
@@ -123,10 +123,15 @@ class TelegramChat:
         self.bot = bot
         self.update = update
         self.model = model
+        self.clean = False
 
 
     def format(self):
         return 'txt'
+
+
+    def user_id(self):
+        return self.update.effective_user.id
 
 
     def username(self):
@@ -141,6 +146,15 @@ class TelegramChat:
         return '/' + command
 
 
+    def user_detail(self):
+        user_id = 'unknown user'
+        if self.ctxt.has_key('user_id'):
+            user_id = self.ctxt.user_id
+        elif self.ctxt.has_key('visitor_id'):
+            user_id = self.ctxt.visitor_id
+        return 'User: {} via Telegram: {} #{}'.format(user_id, self.username(), self.user_id())
+
+
     def replyText(self, text, reply_options=None, inline_args=None):
         reply_markup = ReplyKeyboardRemove()
         keyboard = None
@@ -151,10 +165,11 @@ class TelegramChat:
 
         elif reply_options != None:
             keyboard = self.__convert_reply_keyboard(reply_options)
-            reply_markup=ReplyKeyboardMarkup(keyboard)
+            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
 
         if keyboard:
-            self.ctxt.whitelist(reply_options)
+            conversation = self.ctxt.conversations.current()
+            conversation.override_with(reply_options)
 
         self.update.effective_chat.send_message(
             text,
@@ -174,6 +189,7 @@ class TelegramChat:
 
     def __convert_inline_keyboard(self, options, inline_args):
         keyboard = []
+        i = 0
         for row in options:
             new_row = []
             for option in row:
@@ -181,11 +197,12 @@ class TelegramChat:
                 command = option[1].__name__
 
                 data = "{} {}".format(conversation, command)
-                if inline_args:
-                    data += ' ' + ' '.join(inline_args)
+                if inline_args is not None and len(inline_args) > 0:
+                    data += ' ' + ' '.join(inline_args[i])
 
                 button = InlineKeyboardButton(text=option[0], callback_data=data)
                 new_row.append(button)
+                i += 1
             keyboard.append(new_row)
         return keyboard
 
@@ -207,9 +224,23 @@ class TelegramChat:
         return None
 
 
+    def clean_options(self):
+        if self.clean:
+            return
+
+        if not self.update.callback_query:
+            return
+
+        try:
+            self.update.callback_query.edit_message_reply_markup(reply_markup=None)
+            self.clean = True
+        except TelegramError:
+            self.model.log.warning('Error updating message: clean_options.')
+
+
     # ========
     # Entities
     # ========
     def fill_user(self, user):
-        user.telegram_id = self.update.effective_user.id
+        user.telegram_id = self.user_id()
         user.telegram_handle = self.username()

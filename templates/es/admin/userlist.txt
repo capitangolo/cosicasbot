@@ -1,0 +1,5 @@
+{{ title }}:
+
+# for group in groups:
+  {% include 'admin/_group.txt' %}
+# endfor

@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from ..filters import *
-from . import signup
+from . import signup, catalog, admin
+from ..model.context import Conversation
 from ..model.entities import *
 
 __name__ = 'Start'
@@ -10,41 +11,91 @@ __name__ = 'Start'
 def _commands():
     return [
         start,
-        browse_catalogs,
         cancel,
 
 # Test commands
         count,      # Test sessions
         secret      # Test filters
-
-# Private commands
     ]
 
 
-def _menu_start_options(t, ctxt):
+def start_conversation():
+    return Conversation(cancel)
+
+
+def _menu_start_options(t, ctxt, is_admin):
+    signup_text = t.action_signup_edit if ctxt.user_id else t.action_signup
+
     options = [
-        [[t.action_do_nothing, cancel]],
-        [[t.action_browse_catalogs, browse_catalogs]]
+        [[t.action_browse_catalogs, _start_catalogs]],
+        [[signup_text, _start_signup]]
     ]
 
-    if not ctxt.user_id:
-        options.append( [[t.action_signup, signup.signup]] )
-    else:
-        options.append( [[t.action_signup_edit, signup.signup]] )
+    if is_admin:
+        options.append( [['Admin', _start_admin]] )
+
+    options.append( [[t.action_do_nothing, cancel]] )
 
     return options
 
+
 def start(model, ctxt, chat, args):
-    chat.replyTemplate('start', _menu_start_options(model.cfg.t, ctxt), [], model=model, ctxt=ctxt, chat=chat)
+    ctxt.conversations.hard_reset() # Discard all conversations when this command is executed
+
+    conn = model.db()
+    admin_group = model.cfg.groups_admin_id
+    admin_role = RoleLevel.admin
+    is_admin = ctxt.user_id and Role.exists_for_user_in_group(conn, admin_role, ctxt.user_id, admin_group)
+    conn.close()
+
+    chat.clean_options()
+    chat.replyTemplate('start', _menu_start_options(model.cfg.t, ctxt, is_admin), [], model=model, ctxt=ctxt, chat=chat)
 
 
 def cancel(model, ctxt, chat, text):
-    ctxt.clean_next()
-    chat.replyText('Genial, cuando quieras hablar conmigo usa /start.')
+    chat.clean_options()
+    chat.replyTemplate('bye')
 
 
-def browse_catalogs(model, ctxt, chat, text):
-    chat.replyText('Estas son tus tiendas:')
+def _start_signup(model, ctxt, chat, text):
+
+    ctxt.conversations.current().resume = start
+
+    conversation, entry = signup.signup_conversation()
+    ctxt.conversations.start(conversation)
+
+    chat.clean_options()
+    entry(model, ctxt, chat, text)
+
+
+def _start_catalogs(model, ctxt, chat, text):
+    chat.clean_options()
+
+    ctxt.conversations.current().resume = start
+
+    conversation, entry = catalog.catalogs_conversation()
+    ctxt.conversations.start(conversation)
+
+    chat.clean_options()
+    entry(model, ctxt, chat, text)
+
+
+@requires_superadmin
+def _start_admin(model, ctxt, chat, text):
+    chat.clean_options()
+
+    ctxt.conversations.current().resume = start
+
+    conversation, entry = admin.admin_conversation()
+    ctxt.conversations.start(conversation)
+
+    chat.clean_options()
+    entry(model, ctxt, chat, text)
+
+
+# =============
+# Test Commands
+# =============
 
 
 def count(model, ctxt, chat, args):
@@ -53,6 +104,7 @@ def count(model, ctxt, chat, args):
     else:
         ctxt.number += 1
     chat.replyText('Hola {}!'.format(ctxt.number))
+
 
 
 @requires_registered

@@ -5,8 +5,10 @@ import threading
 class Bot:
 
 
-    def __init__(self, model):
+    def __init__(self, model, start):
         self.m = model
+
+        self.start_callback = start
 
         self.interfaces = []
 
@@ -57,44 +59,50 @@ class Bot:
 
 
     def handle_command(self, ctxt, chat, callback, args):
+        conversation = ctxt.conversations.current()
+
         # Don't execute commands when we are expecting a text or a photo
         # Allow, howhever to execute whitelisted options.
-        if self.__expecting_response(ctxt) and ctxt.whitelist_options:
-            blocked = True
-            for option in ctxt.whitelist_options:
-                if option[1] == callback:
-                    blocked = False
-                    break
-            if blocked:
+        if self.__expecting_response(conversation):
+            override = conversation.override_for(callback = callback)
+
+            if not override and callback != self.start_callback:
                 return
+
         callback(self.m, ctxt, chat, args)
 
 
     def handle_text(self, ctxt, chat, text):
+        conversation = ctxt.conversations.current()
+
         # Process only if we are expecting it
-        if not ctxt.next_text:
+        if not conversation or not conversation.next_text:
             return
 
         # If it's a whitelisted option,
         # execute the option instead of processing the text
-        if ctxt.whitelist_options:
-            for option in ctxt.whitelist_options:
-                if option[0] == text:
-                    option[1](self.m, ctxt, chat, text)
-                    return
+        override = conversation.override_for(text = text)
 
-        ctxt.next_text(self.m, ctxt, chat, text)
+        if override:
+            override[1](self.m, ctxt, chat, text)
+            return
+
+        conversation.next_text(self.m, ctxt, chat, text)
 
 
     def handle_photo(self, ctxt, chat, photo):
+        conversation = ctxt.conversations.current()
+
         # Process only if we are expecting it
-        if not ctxt.next_photo:
+        if not conversation or not conversation.next_photo:
             return
 
-        ctxt.next_photo(self.m, ctxt, chat, photo)
+        conversation.next_photo(self.m, ctxt, chat, photo)
 
 
     def handle_inline(self, ctxt, chat, text):
+        conversation = ctxt.conversations.current()
+
         parts = text.split(' ', 2)
         conversation_name = parts[0]
         command_name = parts[1]
@@ -102,17 +110,11 @@ class Bot:
         if len(parts) > 2:
             args = parts[2]
 
-        if conversation_name not in self.conversations:
-            return
+        override = conversation.override_for(name = command_name, module = conversation_name)
 
-        conversation = self.conversations[conversation_name]
-        commands = conversation['commands']
-
-        for command in commands:
-            if command.__name__ == command_name:
-                self.handle_command(ctxt, chat, command, args)
-                return
+        if override:
+            override[1](self.m, ctxt, chat, args)
 
 
-    def __expecting_response(self, ctxt):
-        return ctxt.next_text or ctxt.next_photo
+    def __expecting_response(self, conversation):
+        return conversation.has_overrides() or conversation.next_text or conversation.next_photo

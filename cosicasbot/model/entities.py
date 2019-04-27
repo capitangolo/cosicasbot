@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import enum
-from sqlalchemy import Column, ForeignKey, Boolean, Unicode, Enum, Numeric, Text
+from sqlalchemy import Column, ForeignKey, Boolean, Unicode, Enum, Numeric, Text, and_
 from sqlalchemy.dialects.mysql import INTEGER, BIGINT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import exists
 
 Base = declarative_base()
 
@@ -54,22 +55,6 @@ class User(Base):
     orders = relationship('Order')
 
 
-    def catalogs(self, conn):
-        query = conn.query(Catalog)
-        query = query.join(Catalog.group)
-        query = query.join(UserGroup.roles)
-        query = query.filter_by(user_ref=self.id)
-        return query.all()
-
-
-    def role_in(self, conn, user_role, group_id):
-        query = conn.query(Role)
-        query = query.filter_by(user_ref=self.id)
-        query = query.filter_by(group_ref=group_id)
-        query = query.filter_by(role=user_role)
-        return query.first()
-
-
     @classmethod
     def default_user(cls):
         return User()
@@ -109,6 +94,17 @@ class Role(Base):
     group = relationship('UserGroup')
 
 
+    @classmethod
+    def exists_for_user_in_group(cls, conn, role, user_id, group_id):
+        query = conn.query(exists().where(and_(Role.user_ref == user_id, Role.group_ref == group_id, Role.role == role)))
+        return query.scalar()
+
+    @classmethod
+    def for_user_in_group(cls, conn, user_id, group_id):
+        return conn.query(Role).filter(and_(Role.user_ref == user_id, Role.group_ref == group_id)).first()
+
+
+
 class Catalog(Base):
     __tablename__ = 'catalog'
 
@@ -118,6 +114,14 @@ class Catalog(Base):
 
     products = relationship('Product')
     group = relationship('UserGroup', uselist=False)
+
+    @classmethod
+    def for_user(cls, conn, user_id):
+        query = conn.query(Catalog)
+        query = query.join(Catalog.group)
+        query = query.join(UserGroup.roles)
+        query = query.filter_by(user_ref=user_id)
+        return query.all()
 
 
 class Product(Base):

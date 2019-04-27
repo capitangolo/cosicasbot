@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import functools
+from .model.entities import *
 
 
 def requires_registered(func):
@@ -21,6 +22,31 @@ def requires_registered(func):
     return wrapper_decorator
 
 
+def requires_superadmin(func):
+    @functools.wraps(func)
+    def wrapper_decorator(*args, **kwargs):
+        model = args[0]
+        ctxt = args[1]
+        chat = args[2]
+        t = model.cfg.t
+
+        admin_group = model.cfg.groups_admin_id
+        admin_role = RoleLevel.admin
+
+        conn = model.db()
+        is_admin = ctxt.user_id and Role.exists_for_user_in_group(conn, admin_role, ctxt.user_id, admin_group)
+        conn.close()
+
+        if not is_admin:
+            # silently ignore, do not tip the command.
+            model.log.warning("{} tried to access protected command {}.".format(chat.user_detail(), func.__name__))
+            return
+
+        value = func(*args, **kwargs)
+        return value
+    return wrapper_decorator
+
+
 def requires_text_length(length):
     def inner(func):
         @functools.wraps(func)
@@ -31,7 +57,7 @@ def requires_text_length(length):
             text = args[3]
             t = model.cfg.t
 
-            if not len(text.strip()) > length:
+            if len(text.strip()) < length:
                 chat.replyText(t.error_require_text_length.format(length))
                 return
 
