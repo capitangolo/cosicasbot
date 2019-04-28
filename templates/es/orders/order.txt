@@ -1,0 +1,33 @@
+Pedido {{ '#' }}{{ order.id }} en {{ order.catalog().name }}
+
+Productos:
+
+# for lineitem in order.lineitems:
+{% include 'orders/_lineitem.txt' %}
+
+# endfor
+
+# set subtotal, taxes = order.subtotal()
+Subtotal: {{ '%.2f'|format( subtotal ) }}€
+Envío: {{ '%.2f'|format( order.shipping_price ) }}€
+IVA: {{ '%.2f'|format( taxes + (order.shipping_price * order.shipping_tax) ) }}€
+Total: {{ '%.2f'|format( order.total() ) }}€
+
+----
+# if order.customer_notes
+Notas:
+{{ order.customer_notes }}
+
+# endif
+
+Facturado a:
+{{ order.invoice_to }}
+
+Enviado a:
+{{ order.invoice_to }}
+
+----
+Estado: {{ status }}
+# if order.status_notes
+{{ order.status_notes }}
+# endif

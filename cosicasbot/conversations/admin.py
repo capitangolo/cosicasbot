@@ -24,7 +24,7 @@ def _end_admin(model, ctxt, chat, args):
 
 def _menu_start_admin(t, ctxt):
     options = [
-        [[t.list_users, _list_users]],
+        [[t.action_list_users, _list_users]],
         [[t.action_back, _end_admin]]
     ]
 

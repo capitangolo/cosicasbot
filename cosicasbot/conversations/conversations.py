@@ -17,40 +17,6 @@ from .entities import *
 class TemporderCallbackManager:
 
 
-    def __init__(self, config, engine):
-        self.sessionmaker = sessionmaker(bind=engine)
-        self.config = config
-        self.templates_env = Environment(
-            loader=FileSystemLoader(self.config.templates_path),
-            line_statement_prefix='#',
-            autoescape=False
-        )
-
-
-    def __init_user_tempoder(self, session, user):
-        if not user:
-            return False
-
-        if not user.temporder:
-            user.temporder = TempOrder.default_temporder()
-            session.commit()
-
-        return True
-
-
-    def order_show(self, bot, update):
-        session = self.sessionmaker()
-        user = user_from_update(session, update)
-        if not self.__init_user_tempoder(session, user):
-            return None
-
-        template_name = 'temporder_show.template'
-        template = self.templates_env.get_template(template_name)
-
-        message = template.render(bot=bot, update=update, temporder=user.temporder, user=user)
-        update.effective_user.send_message(message)
-
-
     def order_confirm(self, bot, update):
         session = self.sessionmaker()
         user = user_from_update(session, update)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from decimal import Decimal
 import enum
 from sqlalchemy import Column, ForeignKey, Boolean, Unicode, Enum, Numeric, Text, and_
 from sqlalchemy.dialects.mysql import INTEGER, BIGINT
@@ -163,37 +164,56 @@ class Order(Base):
     invoice_to = Column(Unicode(255), nullable=False, default='')
     ship_to = Column(Unicode(255), nullable=False, default='')
 
+    # TODO: Cache subtotal and total
 
     user = relationship('User', uselist=False)
+    lineitems = relationship('LineItems')
+
+
+    @classmethod
+    def for_user(cls, conn, user_id):
+        return conn.query(Order).filter_by(user_ref = user_id).all()
+
 
     # TODO: get values from config
     @classmethod
     def __shipping_price(cls, subtotal):
         if subtotal >= 30:
-            return 0
+            return Decimal('0')
         elif subtotal >=15:
-            return 2.48
+            return Decimal('2.48')
         else:
-            return 4.96
+            return Decimal('4.96')
 
-    # TODO: update to use lineitems
+
     def subtotal(self):
-        return self.keychain_price() + self.figurine7_price() + self.figurine10_price() + self.coin_price() + float(self.extras_price)
+        subtotal = Decimal('0')
+        taxes = Decimal('0')
+        for lineitem in self.lineitems:
+            subtotal += lineitem.price
+            taxes += lineitem.tax
 
-
-    def shipping_price(self):
-        subtotal = self.subtotal()
-        return self.__shipping_price(subtotal)
+        return subtotal, taxes
 
 
     def total(self):
-        subtotal = self.subtotal()
-        shipping =  self.__shipping_price(subtotal)
-        return subtotal + shipping
+        subtotal, taxes = self.subtotal()
+        return subtotal + taxes + (self.shipping_price * (1 + self.shipping_tax))
+
+
+    def status_display(self, t):
+        text_name = 'order_status_{}'.format(self.status.name)
+        return getattr(t, text_name)
+
+
+    def catalog(self):
+        # TODO: Cache the catalog inside order.
+        return self.lineitems[0].product.catalog
+
 
 
 class LineItems(Base):
-    __tablename__ = 'lineitems'
+    __tablename__ = 'lineitem'
 
     order_ref = Column(INTEGER(unsigned=True), ForeignKey('order.id'), nullable=False, primary_key=True)
     product_ref = Column(INTEGER(unsigned=True), ForeignKey('product.id'), nullable=False, primary_key=True)

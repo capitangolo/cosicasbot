@@ -1,1 +1,12 @@
-__all__ = ['start', 'signup', 'admin', 'catalog']
+__all__ = [
+# Entry points
+    'start',
+    'admin',
+
+# Core
+    'signup',
+
+# Shop
+    'catalog',
+    'orders'
+]

@@ -12,7 +12,7 @@ import unicodedata
 from cosicasbot.model import context
 
 
-VERSION = '1.0.7'
+VERSION = '1.0.8'
 
 
 INTERFACES = [
@@ -21,10 +21,12 @@ INTERFACES = [
 
 CONVERSATIONS = [
     start,
-    signup,
-    catalog,
+    admin,
 
-    admin
+    signup,
+
+    catalog,
+    orders
 ]
 
 

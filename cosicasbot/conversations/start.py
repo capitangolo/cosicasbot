@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from ..filters import *
-from . import signup, catalog, admin
+from . import signup, catalog, admin, orders
 from ..model.context import Conversation
 from ..model.entities import *
 
@@ -28,11 +28,12 @@ def _menu_start_options(t, ctxt, is_admin):
 
     options = [
         [[t.action_browse_catalogs, _start_catalogs]],
+        [[t.action_browse_orders, _start_orders]],
         [[signup_text, _start_signup]]
     ]
 
     if is_admin:
-        options.append( [['Admin', _start_admin]] )
+        options.append( [[t.action_admin, _start_admin]] )
 
     options.append( [[t.action_do_nothing, cancel]] )
 
@@ -58,39 +59,37 @@ def cancel(model, ctxt, chat, text):
 
 
 def _start_signup(model, ctxt, chat, text):
-
-    ctxt.conversations.current().resume = start
-
     conversation, entry = signup.signup_conversation()
-    ctxt.conversations.start(conversation)
-
-    chat.clean_options()
-    entry(model, ctxt, chat, text)
+    _start_conversation(conversation, entry, model, ctxt, chat, text)
 
 
 def _start_catalogs(model, ctxt, chat, text):
-    chat.clean_options()
-
-    ctxt.conversations.current().resume = start
-
     conversation, entry = catalog.catalogs_conversation()
-    ctxt.conversations.start(conversation)
+    _start_conversation(conversation, entry, model, ctxt, chat, text)
 
-    chat.clean_options()
-    entry(model, ctxt, chat, text)
+
+def _start_orders(model, ctxt, chat, text):
+    conversation, entry = orders.orders_conversation()
+    _start_conversation(conversation, entry, model, ctxt, chat, text)
 
 
 @requires_superadmin
 def _start_admin(model, ctxt, chat, text):
+    conversation, entry = admin.admin_conversation()
+    _start_conversation(conversation, entry, model, ctxt, chat, text)
+
+
+def _start_conversation(conversation, entry, model, ctxt, chat, text):
     chat.clean_options()
 
     ctxt.conversations.current().resume = start
 
-    conversation, entry = admin.admin_conversation()
     ctxt.conversations.start(conversation)
 
     chat.clean_options()
     entry(model, ctxt, chat, text)
+
+
 
 
 # =============

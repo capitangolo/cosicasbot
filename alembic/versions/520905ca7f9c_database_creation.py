@@ -171,7 +171,8 @@ def upgrade():
         sa.Column('product_ref', my.INTEGER(unsigned=True)),
         sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
         sa.Column('tax', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
-        sa.Column('quantity', my.INTEGER(unsigned=True), nullable=False, default=1)
+        sa.Column('quantity', my.INTEGER(unsigned=True), nullable=False, default=1),
+        sa.Column('notes', sa.Unicode(255), nullable=False, default='')
     )
 
     op.create_primary_key(

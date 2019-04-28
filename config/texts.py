@@ -9,7 +9,8 @@ action_back = '⬅️ Volver'
 
 
 # Actions - Admin
-list_users = '👥 Listar usuarios'
+action_admin = '💣 Administrar Bot'
+action_list_users = '👥 Listar usuarios'
 
 
 # Actions - Signup
@@ -26,6 +27,19 @@ action_signup_edit_shipping = 'Cambiar dir. envío'
 
 # Actions - Catalog
 action_browse_catalogs = '🛍 Cotillear tiendas'
+
+# Actions - Orders
+action_browse_orders = '🗂 Consultar pedidos'
+
+
+# Order Status
+order_status_received = 'Recibido'
+order_status_accepted = 'Aceptado'
+order_status_need_info = 'Falta información'
+order_status_invoiced = 'Facturado'
+order_status_paid = 'Pagado'
+order_status_procesing = 'Procesado'
+order_status_shipped = 'Enviado'
 
 
 # Errors - Filters
