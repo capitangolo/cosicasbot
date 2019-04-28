@@ -51,6 +51,7 @@ def orders(model, ctxt, chat, args):
     options, params = _menu_orders(model.cfg.t, ctxt, orders)
     conn.close()
 
+    chat.clean_options()
     chat.replyTemplate('orders/list', options, params, orders = orders)
 
 

@@ -156,16 +156,7 @@ class TelegramChat:
 
 
     def replyText(self, text, reply_options=None, inline_args=None):
-        reply_markup = ReplyKeyboardRemove()
-        keyboard = None
-
-        if inline_args != None:
-            keyboard = self.__convert_inline_keyboard(reply_options, inline_args)
-            reply_markup=InlineKeyboardMarkup(keyboard)
-
-        elif reply_options != None:
-            keyboard = self.__convert_reply_keyboard(reply_options)
-            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
+        keyboard, reply_markup = self._keyboard_for(reply_options, inline_args)
 
         if keyboard:
             conversation = self.ctxt.conversations.current()
@@ -207,6 +198,21 @@ class TelegramChat:
         return keyboard
 
 
+    def _keyboard_for(self, reply_options, inline_args=None):
+        keyboard = None
+        reply_markup = ReplyKeyboardRemove()
+
+        if inline_args != None:
+            keyboard = self.__convert_inline_keyboard(reply_options, inline_args)
+            reply_markup=InlineKeyboardMarkup(keyboard)
+
+        elif reply_options != None:
+            keyboard = self.__convert_reply_keyboard(reply_options)
+            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True)
+
+        return keyboard, reply_markup
+
+
     def render(self, template_name, **kwargs):
         return self.model.render(template_name, self.format(), **kwargs)
 
@@ -214,6 +220,20 @@ class TelegramChat:
     def replyTemplate(self, template_name, reply_options=None, inline_args=None, **kwargs):
         text = self.render(template_name, **kwargs)
         self.replyText(text, reply_options, inline_args)
+
+
+    def replyPhoto(self, photo_file_path, reply_options=None, inline_args=None,):
+        keyboard, reply_markup = self._keyboard_for(reply_options, inline_args)
+
+        if keyboard:
+            conversation = self.ctxt.conversations.current()
+            conversation.override_with(reply_options)
+
+        with open(photo_file_path, 'rb') as photo_file:
+            self.update.effective_chat.send_photo(
+                photo_file,
+                reply_markup=reply_markup
+            )
 
 
     def callback_for_input(self, reply_options, input):
@@ -236,6 +256,18 @@ class TelegramChat:
             self.clean = True
         except TelegramError:
             self.model.log.warning('Error updating message: clean_options.')
+
+
+    def update_options(self, reply_options, inline_args):
+        keyboard = self.__convert_inline_keyboard(reply_options, inline_args)
+        reply_markup=InlineKeyboardMarkup(keyboard)
+
+        conversation = self.ctxt.conversations.current()
+        conversation.override_with(reply_options)
+
+        self.update.callback_query.edit_message_reply_markup(
+            reply_markup=reply_markup
+        )
 
 
     # ========

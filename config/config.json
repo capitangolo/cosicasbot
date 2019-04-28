@@ -3,6 +3,7 @@
 
   "db_url": "mysql+pymysql://user:password@host/database",
   "templates_folder": "./templates/es/",
+  "uploads_folder": "./uploads",
 
   "groups_admin_id": 1,
   "groups_allusers_id": 2,

@@ -116,6 +116,7 @@ class Catalog(Base):
     products = relationship('Product')
     group = relationship('UserGroup', uselist=False)
 
+
     @classmethod
     def for_user(cls, conn, user_id):
         query = conn.query(Catalog)
@@ -123,6 +124,23 @@ class Catalog(Base):
         query = query.join(UserGroup.roles)
         query = query.filter_by(user_ref=user_id)
         return query.all()
+
+
+    @classmethod
+    def by_id_for(cls, conn, catalog_id, user_id):
+        query = conn.query(Catalog)
+        query = query.join(Catalog.group)
+        query = query.join(UserGroup.roles)
+        query = query.filter(Catalog.id == catalog_id, Role.user_ref == user_id)
+        return query.one()
+
+
+    def product_count(self, conn):
+        return conn.query(Product).filter_by(catalog_ref=self.id).count()
+
+
+    def product_page(self, conn, page, page_size):
+        return conn.query(Product).filter_by(catalog_ref=self.id).offset(page * page_size).limit(page_size).all()
 
 
 class Product(Base):
@@ -137,6 +155,16 @@ class Product(Base):
     detail = Column(Unicode(255), nullable=False, default='')
 
     catalog = relationship('Catalog', uselist=False)
+
+
+    @classmethod
+    def by_id_from_catalog_for(cls, conn, product_id, catalog_id, user_id):
+        query = conn.query(Product)
+        query = query.join(Product.catalog)
+        query = query.join(Catalog.group)
+        query = query.join(UserGroup.roles)
+        query = query.filter(Product.id == product_id, Catalog.id == catalog_id, Role.user_ref == user_id)
+        return query.one()
 
 
 class OrderStatus(enum.Enum):

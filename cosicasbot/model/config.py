@@ -16,6 +16,7 @@ class Config:
 
         ConfigOption('db_url', None, True),
         ConfigOption('templates_folder', None, True),
+        ConfigOption('uploads_folder', None, True),
 
         ConfigOption('groups_admin_id', 1, True),
         ConfigOption('groups_allusers_id', 2, True),

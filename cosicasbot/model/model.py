@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from . import context
+from . import context, uploads
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -26,6 +26,9 @@ class Model:
             line_statement_prefix='#',
             autoescape=False
         )
+
+        # Uploads
+        self.uploads = uploads.UploadManager(self.cfg.uploads_folder)
 
         # User Sessions
         self.default_conversation_generator = default_conversation_generator
