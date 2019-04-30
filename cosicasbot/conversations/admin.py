@@ -43,7 +43,7 @@ def _list_users(model, ctxt, chat, args):
 
     # TODO: Paginate
     display_groups = []
-    groups = conn.query(UserGroup).all()
+    groups = conn.query(Group).all()
     for group in groups:
         users = []
         for user in group.users:

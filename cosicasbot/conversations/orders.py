@@ -28,7 +28,7 @@ def _menu_orders(t, ctxt, orders):
     params = []
 
     for order in orders:
-        title = "#{} {} {:.2f}€ - {}".format(order.id, order.catalog().name, order.total(), order.status_display(t))
+        title = "#{} {} {:.2f}€ - {}".format(order.id, order.catalog.name, order.total(), order.status_display(t))
         options.append( [[title, browse_order]] )
         params.append( [str(order.id)] )
 

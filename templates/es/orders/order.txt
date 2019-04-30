@@ -1,4 +1,4 @@
-Pedido {{ '#' }}{{ order.id }} en {{ order.catalog().name }}
+Pedido {{ '#' }}{{ order.id }} en {{ order.catalog.name }}
 
 Productos:
 

@@ -19,34 +19,30 @@ down_revision = None
 branch_labels = None
 depends_on = None
 
-USER_TABLE_NAME = 'user'
-GROUP_TABLE_NAME = 'user_group'
-ROLE_TABLE_NAME = 'role'
-CATALOG_TABLE_NAME = 'catalog'
-PRODUCT_TABLE_NAME = 'product'
-LINEITEM_TABLE_NAME = 'lineitem'
-ORDER_TABLE_NAME = 'order'
-CARTITEM_TABLE_NAME = 'cartitem'
-DISCOUNT_TABLE_NAME = 'discount'
+USER_TABLE_NAME = 'users'
+GROUP_TABLE_NAME = 'groups'
+ROLE_TABLE_NAME = 'roles'
+CATALOG_TABLE_NAME = 'catalogs'
+PRODUCT_TABLE_NAME = 'products'
+LINEITEM_TABLE_NAME = 'lineitems'
+ORDER_TABLE_NAME = 'orders'
+CARTITEM_TABLE_NAME = 'cartitems'
+DISCOUNT_TABLE_NAME = 'discounts'
 
-LINEITEM_PK_NAME = 'pk_lineitem'
+GROUP_FK_NAME = 'fk_usergroups_roles'
+USER_FK_NAME = 'fk_users_roles'
 
-CARTITEM_PK_NAME = 'pk_cartitem'
+CATALOG_GROUP_FK_NAME = 'fk_catalogs_groups'
 
-GROUP_FK_NAME = 'fk_usergroup_role'
-USER_FK_NAME = 'fk_user_role'
+ORDER_USER_FK_NAME = 'fk_orders_users'
 
-CATALOG_GROUP_FK_NAME = 'fk_catalog_group'
+PRODUCT_CATALOG_FK_NAME = 'fk_products_catalogs'
 
-ORDER_USER_FK_NAME = 'fk_order_user'
+LINEITEM_PRODUCT_FK_NAME = 'fk_lineitems_products'
+LINEITEM_ORDER_FK_NAME = 'fk_lineitems_orders'
 
-PRODUCT_CATALOG_FK_NAME = 'fk_product_catalog'
-
-LINEITEM_PRODUCT_FK_NAME = 'fk_lineitem_product'
-LINEITEM_ORDER_FK_NAME = 'fk_lineitem_order'
-
-CARTITEM_PRODUCT_FK_NAME = 'fk_cartitem_product'
-CARTITEM_USER_FK_NAME = 'fk_cartitem_user'
+CARTITEM_PRODUCT_FK_NAME = 'fk_cartitems_products'
+CARTITEM_USER_FK_NAME = 'fk_cartitems_users'
 
 
 class RoleLevel(enum.Enum):
@@ -130,6 +126,8 @@ def upgrade():
         sa.Column('id', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('user_ref', my.INTEGER(unsigned=True), nullable=False),
 
+        sa.Column('catalog_ref', my.INTEGER(unsigned=True), nullable=False),
+
         sa.Column('status', sa.Enum(OrderStatus), default=OrderStatus.received),
         sa.Column('shipping_price', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
         sa.Column('shipping_tax', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
@@ -150,7 +148,9 @@ def upgrade():
     op.create_table(
         PRODUCT_TABLE_NAME,
         sa.Column('id', my.INTEGER(unsigned=True), primary_key=True),
+        sa.Column('model', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('catalog_ref', my.INTEGER(unsigned=True), nullable=False),
+        sa.Column('active', sa.Boolean, nullable=False, default=True),
         sa.Column('name', sa.Unicode(255), nullable=False, default=''),
         sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
         sa.Column('tax', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
@@ -167,17 +167,13 @@ def upgrade():
 
     op.create_table(
         LINEITEM_TABLE_NAME,
-        sa.Column('order_ref', my.INTEGER(unsigned=True)),
-        sa.Column('product_ref', my.INTEGER(unsigned=True)),
+        sa.Column('order_ref', my.INTEGER(unsigned=True), primary_key=True),
+        sa.Column('product_ref', my.INTEGER(unsigned=True), primary_key=True),
+        sa.Column('product_model', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
         sa.Column('tax', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
         sa.Column('quantity', my.INTEGER(unsigned=True), nullable=False, default=1),
         sa.Column('notes', sa.Unicode(255), nullable=False, default='')
-    )
-
-    op.create_primary_key(
-        LINEITEM_PK_NAME, LINEITEM_TABLE_NAME,
-        ['order_ref', 'product_ref']
     )
 
     op.create_foreign_key(
@@ -189,20 +185,16 @@ def upgrade():
     op.create_foreign_key(
         LINEITEM_PRODUCT_FK_NAME,
         LINEITEM_TABLE_NAME, PRODUCT_TABLE_NAME,
-        ['product_ref'], ['id']
+        ['product_ref', 'product_model'], ['id', 'model']
     )
 
 
     op.create_table(
         CARTITEM_TABLE_NAME,
-        sa.Column('user_ref', my.INTEGER(unsigned=True)),
-        sa.Column('product_ref', my.INTEGER(unsigned=True)),
+        sa.Column('user_ref', my.INTEGER(unsigned=True), primary_key=True),
+        sa.Column('product_ref', my.INTEGER(unsigned=True), primary_key=True),
+        sa.Column('product_model', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('quantity', my.INTEGER(unsigned=True), nullable=False, default=1)
-    )
-
-    op.create_primary_key(
-        CARTITEM_PK_NAME, CARTITEM_TABLE_NAME,
-        ['user_ref', 'product_ref']
     )
 
     op.create_foreign_key(
@@ -214,7 +206,7 @@ def upgrade():
     op.create_foreign_key(
         CARTITEM_PRODUCT_FK_NAME,
         CARTITEM_TABLE_NAME, PRODUCT_TABLE_NAME,
-        ['product_ref'], ['id']
+        ['product_ref', 'product_model'], ['id', 'model']
     )
 
 
@@ -222,6 +214,7 @@ def upgrade():
         DISCOUNT_TABLE_NAME,
         sa.Column('id', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('product_ref', my.INTEGER(unsigned=True), index=True),
+        sa.Column('product_model', my.INTEGER(unsigned=True)),
         sa.Column('catalog_ref', my.INTEGER(unsigned=True), index=True),
         sa.Column('group_ref', my.INTEGER(unsigned=True), index=True),
         sa.Column('user_ref', my.INTEGER(unsigned=True), index=True),
@@ -231,11 +224,11 @@ def upgrade():
 
    # --- INSERT GROUPS
 
-    conn.execute('INSERT INTO user_group (id, name, auto_group_list) VALUES (1, "Admin", NULL)')
-    conn.execute('INSERT INTO user_group (id, name, auto_group_list) VALUES (2, "All Users", "all")')
+    conn.execute('INSERT INTO `groups` (id, name, auto_group_list) VALUES (1, "Admin", NULL)')
+    conn.execute('INSERT INTO `groups` (id, name, auto_group_list) VALUES (2, "All Users", "all")')
 
    # Save first 100 groups for special bot groups.
-    conn.execute('ALTER TABLE user_group AUTO_INCREMENT=100')
+    conn.execute('ALTER TABLE `groups` AUTO_INCREMENT=100')
 
 
 def downgrade():

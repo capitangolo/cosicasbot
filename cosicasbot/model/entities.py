@@ -3,7 +3,7 @@
 
 from decimal import Decimal
 import enum
-from sqlalchemy import Column, ForeignKey, Boolean, Unicode, Enum, Numeric, Text, and_
+from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Boolean, Unicode, Enum, Numeric, Text, and_
 from sqlalchemy.dialects.mysql import INTEGER, BIGINT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -12,8 +12,8 @@ from sqlalchemy.sql import exists
 Base = declarative_base()
 
 
-class UserGroup(Base):
-    __tablename__ = 'user_group'
+class Group(Base):
+    __tablename__ = 'groups'
 
     id = Column(INTEGER(unsigned=True), primary_key=True)
     name = Column(Unicode(50), unique=True)
@@ -21,7 +21,7 @@ class UserGroup(Base):
     auto_group_list = Column(Text)
     payload = Column(Text)
 
-    users = relationship('User', secondary='role')
+    users = relationship('User', secondary='roles')
     roles = relationship('Role')
 
     #TODO: Automatic groups.
@@ -36,7 +36,7 @@ class UserGroup(Base):
 
 
 class User(Base):
-    __tablename__ = 'user'
+    __tablename__ = 'users'
 
     id = Column(INTEGER(unsigned=True), primary_key=True)
     telegram_id = Column(BIGINT(unsigned=True), unique=True)
@@ -49,7 +49,7 @@ class User(Base):
     email_address = Column(Unicode(50))
     phone_number = Column(Unicode(20))
 
-    groups = relationship('UserGroup', secondary='role')
+    groups = relationship('Group', secondary='roles')
     roles = relationship('Role')
 
     cartitems = relationship('CartItem')
@@ -85,14 +85,14 @@ class RoleLevel(enum.Enum):
 
 
 class Role(Base):
-    __tablename__ = 'role'
+    __tablename__ = 'roles'
 
-    user_ref = Column(INTEGER(unsigned=True), ForeignKey('user.id'), primary_key=True)
-    group_ref = Column(INTEGER(unsigned=True), ForeignKey('user_group.id'), primary_key=True)
+    user_ref = Column(INTEGER(unsigned=True), ForeignKey('users.id'), primary_key=True)
+    group_ref = Column(INTEGER(unsigned=True), ForeignKey('groups.id'), primary_key=True)
     role = Column(Enum(RoleLevel), default=RoleLevel.user)
 
     user = relationship('User')
-    group = relationship('UserGroup')
+    group = relationship('Group')
 
 
     @classmethod
@@ -107,21 +107,21 @@ class Role(Base):
 
 
 class Catalog(Base):
-    __tablename__ = 'catalog'
+    __tablename__ = 'catalogs'
 
     id = Column(INTEGER(unsigned=True), primary_key=True)
     name = Column(Unicode(255), nullable=False, default='')
-    group_ref = Column(INTEGER(unsigned=True), ForeignKey('user_group.id'), primary_key=True)
+    group_ref = Column(INTEGER(unsigned=True), ForeignKey('groups.id'), primary_key=True)
 
     products = relationship('Product')
-    group = relationship('UserGroup', uselist=False)
+    group = relationship('Group', uselist=False)
 
 
     @classmethod
     def for_user(cls, conn, user_id):
         query = conn.query(Catalog)
         query = query.join(Catalog.group)
-        query = query.join(UserGroup.roles)
+        query = query.join(Group.roles)
         query = query.filter_by(user_ref=user_id)
         return query.all()
 
@@ -130,7 +130,7 @@ class Catalog(Base):
     def by_id_for(cls, conn, catalog_id, user_id):
         query = conn.query(Catalog)
         query = query.join(Catalog.group)
-        query = query.join(UserGroup.roles)
+        query = query.join(Group.roles)
         query = query.filter(Catalog.id == catalog_id, Role.user_ref == user_id)
         return query.one()
 
@@ -144,10 +144,12 @@ class Catalog(Base):
 
 
 class Product(Base):
-    __tablename__ = 'product'
+    __tablename__ = 'products'
 
     id = Column(INTEGER(unsigned=True), primary_key=True)
-    catalog_ref = Column(INTEGER(unsigned=True), ForeignKey('catalog.id'))
+    model = Column(INTEGER(unsigned=True), primary_key=True)
+    catalog_ref = Column(INTEGER(unsigned=True), ForeignKey('catalogs.id'))
+    active = Column(Boolean, nullable=False, default=True)
     name = Column(Unicode(255), nullable=False, default='')
     price = Column(Numeric(precision=10, scale=2), nullable=False, default=0)
     tax = Column(Numeric(precision=10, scale=2), nullable=False, default=0)
@@ -158,13 +160,19 @@ class Product(Base):
 
 
     @classmethod
-    def by_id_from_catalog_for(cls, conn, product_id, catalog_id, user_id):
+    def by_id_from_catalog_for(cls, conn, product_id, product_model, catalog_id, user_id, only_active=True):
         query = conn.query(Product)
         query = query.join(Product.catalog)
         query = query.join(Catalog.group)
-        query = query.join(UserGroup.roles)
-        query = query.filter(Product.id == product_id, Catalog.id == catalog_id, Role.user_ref == user_id)
+        query = query.join(Group.roles)
+        query = query.filter(Product.id == product_id, Product.model == product_model, Catalog.id == catalog_id, Role.user_ref == user_id)
+
+        if only_active:
+            query = query.filter(Product.active == True)
+
         return query.one()
+
+    # TODO: Listener to set id and model
 
 
 class OrderStatus(enum.Enum):
@@ -178,10 +186,11 @@ class OrderStatus(enum.Enum):
 
 
 class Order(Base):
-    __tablename__ = 'order'
+    __tablename__ = 'orders'
 
     id = Column(INTEGER(unsigned=True), primary_key=True)
-    user_ref = Column(INTEGER(unsigned=True), ForeignKey('user.id'), nullable=False)
+    user_ref = Column(INTEGER(unsigned=True), ForeignKey('users.id'), nullable=False)
+    catalog_ref = Column(INTEGER(unsigned=True), ForeignKey('catalogs.id'), nullable=False)
     status = Column(Enum(OrderStatus), default=OrderStatus.received)
 
     shipping_price = Column(Numeric(precision=10, scale=2), nullable=False, default=0)
@@ -195,6 +204,7 @@ class Order(Base):
     # TODO: Cache subtotal and total
 
     user = relationship('User', uselist=False)
+    catalog = relationship('Catalog', uselist=False)
     lineitems = relationship('LineItems')
 
 
@@ -234,43 +244,51 @@ class Order(Base):
         return getattr(t, text_name)
 
 
-    def catalog(self):
-        # TODO: Cache the catalog inside order.
-        return self.lineitems[0].product.catalog
-
-
-
 class LineItems(Base):
-    __tablename__ = 'lineitem'
+    __tablename__ = 'lineitems'
 
-    order_ref = Column(INTEGER(unsigned=True), ForeignKey('order.id'), nullable=False, primary_key=True)
-    product_ref = Column(INTEGER(unsigned=True), ForeignKey('product.id'), nullable=False, primary_key=True)
+    order_ref = Column(INTEGER(unsigned=True), ForeignKey('orders.id'), nullable=False, primary_key=True)
+    product_ref = Column(INTEGER(unsigned=True), nullable=False, primary_key=True)
+    product_model = Column(INTEGER(unsigned=True), nullable=False, primary_key=True)
     price = Column(Numeric(precision=10, scale=2), nullable=False, default=0)
     tax = Column(Numeric(precision=10, scale=2), nullable=False, default=0)
     quantity = Column(INTEGER(unsigned=True), nullable=False, default=1)
 
     notes = Column(Unicode(255), nullable=False, default='')
 
+
+    __table_args__ = (ForeignKeyConstraint([product_ref, product_model],
+                                           [Product.id, Product.model]),
+                      {})
+
     order = relationship('Order', uselist=False)
     product = relationship('Product', uselist=False)
 
 
 class CartItem(Base):
-    __tablename__ = 'cartitem'
+    __tablename__ = 'cartitems'
 
-    user_ref = Column(INTEGER(unsigned=True), ForeignKey('user.id'), nullable=False, primary_key=True)
-    product_ref = Column(INTEGER(unsigned=True), ForeignKey('product.id'), nullable=False, primary_key=True)
+    user_ref = Column(INTEGER(unsigned=True), ForeignKey('users.id'), nullable=False, primary_key=True)
+    product_ref = Column(INTEGER(unsigned=True), nullable=False, primary_key=True)
+    product_model = Column(INTEGER(unsigned=True), nullable=False, primary_key=True)
     quantity = Column(INTEGER(unsigned=True), nullable=False, default=1)
+
+
+    __table_args__ = (ForeignKeyConstraint([product_ref, product_model],
+                                           [Product.id, Product.model]),
+                      {})
 
     user = relationship('User', uselist=False)
     product = relationship('Product', uselist=False)
 
+
 class Discount(Base):
-    __tablename__ = 'discount'
+    __tablename__ = 'discounts'
 
     id = Column(INTEGER(unsigned=True), primary_key=True)
 
     product_ref = Column(INTEGER(unsigned=True), index=True)
+    model_ref = Column(INTEGER(unsigned=True))
     catalog_ref = Column(INTEGER(unsigned=True), index=True)
     group_ref = Column(INTEGER(unsigned=True), index=True)
     user_ref = Column(INTEGER(unsigned=True), index=True)

@@ -49,7 +49,7 @@ def _menu_products(t, products, page, page_count):
         # TODO: Localize the price format
         title = "{} {:.02f}€".format(product.name, product.price)
         options.append( [[title, browse_product]] )
-        params.append( [str(product.id)] )
+        params.append( [str(product.id), str(product.model)] )
 
     if page < page_count - 1:
         options.append( [[ '⏩', _browse_page ]] )
@@ -131,9 +131,11 @@ def _options_for_page(conn, t, catalog, chat, page):
 
 
 @requires_registered
-def browse_product(model, ctxt, chat, args):
+def browse_product(model, ctxt, chat, text):
+    args = text.split()
     cctxt = ctxt.conversations.current().ctxt
-    cctxt.product_id = int(args)
+    cctxt.product_id = int(args[0])
+    cctxt.product_model = int(args[1])
 
     if not cctxt.catalog_id:
         return
@@ -142,7 +144,7 @@ def browse_product(model, ctxt, chat, args):
         return
 
     conn = model.db()
-    product = Product.by_id_from_catalog_for(conn, cctxt.product_id, cctxt.catalog_id, ctxt.user_id)
+    product = Product.by_id_from_catalog_for(conn, cctxt.product_id, cctxt.product_model, cctxt.catalog_id, ctxt.user_id)
 #    options, params = _options_for_page(conn, model.cfg.t, catalog, chat, 0)
 
 #    if options:
