@@ -1,0 +1,2 @@
+x{{ item.quantity }} {{ item.product.name }}: {{  '%.2f'|format( item.product.price ) }}€ ud.
+{{  '%.2f'|format( item.quantity * item.product.price ) }}€ / {{  '%.2f'|format( item.quantity * item.product.price * (1 + item.product.tax) ) }}€ IVA incl.

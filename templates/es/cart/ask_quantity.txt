@@ -1,0 +1,7 @@
+# if item
+Ya tienes {{ item.quantity }} de '{{ product.name }}'. ¿Cuántos quieres en total?
+# else
+¿Cuántos de '{{ product.name }}' quieres comprar?
+# endif
+{{ ' ' }}
+Cada uno tiene un precio de {{ '%.2f'|format( product.price ) }}€ sin IVA / {{ '%.2f'|format( product.price * (1 + product.tax) ) }}€ con IVA.

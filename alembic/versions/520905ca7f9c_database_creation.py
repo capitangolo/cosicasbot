@@ -36,7 +36,9 @@ CATALOG_GROUP_FK_NAME = 'fk_catalogs_groups'
 
 ORDER_USER_FK_NAME = 'fk_orders_users'
 
+PRODUCT_SORT_BY_NAME = 'ix_sort_by_name'
 PRODUCT_CATALOG_FK_NAME = 'fk_products_catalogs'
+PRODUCT_SOURCE_FK_NAME = 'fk_products_source'
 
 LINEITEM_PRODUCT_FK_NAME = 'fk_lineitems_products'
 LINEITEM_ORDER_FK_NAME = 'fk_lineitems_orders'
@@ -150,18 +152,33 @@ def upgrade():
         sa.Column('id', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('model', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('catalog_ref', my.INTEGER(unsigned=True), nullable=False),
+        sa.Column('weight', my.INTEGER, nullable=False, default=10),
         sa.Column('active', sa.Boolean, nullable=False, default=True),
         sa.Column('name', sa.Unicode(255), nullable=False, default=''),
         sa.Column('price', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
         sa.Column('tax', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
+        sa.Column('source_ref', my.INTEGER(unsigned=True), nullable=True),
+        sa.Column('source_model', my.INTEGER(unsigned=True), nullable=True),
 
         sa.Column('detail', sa.Unicode(255), nullable=False, default=''),
+    )
+
+    op.create_index(
+        PRODUCT_TABLE_NAME,
+        PRODUCT_SORT_BY_NAME,
+        ['catalog_ref', 'weight', 'name']
     )
 
     op.create_foreign_key(
         PRODUCT_CATALOG_FK_NAME,
         PRODUCT_TABLE_NAME, CATALOG_TABLE_NAME,
         ['catalog_ref'], ['id']
+    )
+
+    op.create_foreign_key(
+        PRODUCT_SOURCE_FK_NAME,
+        PRODUCT_TABLE_NAME, PRODUCT_TABLE_NAME,
+        ['product_source'], ['id']
     )
 
 

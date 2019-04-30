@@ -1,0 +1,1 @@
+He registrado {{ orders|length }} pedidos. En cuanto las tiendas los revisen te enviarán la factura y te darán las instrucciones de pago.

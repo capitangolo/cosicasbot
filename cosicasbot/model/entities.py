@@ -140,7 +140,10 @@ class Catalog(Base):
 
 
     def product_page(self, conn, page, page_size):
-        return conn.query(Product).filter_by(catalog_ref=self.id).offset(page * page_size).limit(page_size).all()
+        query = conn.query(Product).filter_by(catalog_ref=self.id)
+        query = query.order_by(Product.weight, Product.name)
+        query = query.offset(page * page_size).limit(page_size)
+        return query.all()
 
 
 class Product(Base):
@@ -149,14 +152,22 @@ class Product(Base):
     id = Column(INTEGER(unsigned=True), primary_key=True)
     model = Column(INTEGER(unsigned=True), primary_key=True)
     catalog_ref = Column(INTEGER(unsigned=True), ForeignKey('catalogs.id'))
+    weight = Column(INTEGER, nullable=False, default=10)
     active = Column(Boolean, nullable=False, default=True)
     name = Column(Unicode(255), nullable=False, default='')
     price = Column(Numeric(precision=10, scale=2), nullable=False, default=0)
     tax = Column(Numeric(precision=10, scale=2), nullable=False, default=0)
+    source_ref = Column(INTEGER(unsigned=True), nullable=True)
+    source_model = Column(INTEGER(unsigned=True), nullable=True)
 
     detail = Column(Unicode(255), nullable=False, default='')
 
+    __table_args__ = (ForeignKeyConstraint([source_ref, source_model],
+                                           [id, model]),
+                      {})
+
     catalog = relationship('Catalog', uselist=False)
+    source = relationship('Product', uselist=False)
 
 
     @classmethod
@@ -205,7 +216,7 @@ class Order(Base):
 
     user = relationship('User', uselist=False)
     catalog = relationship('Catalog', uselist=False)
-    lineitems = relationship('LineItems')
+    lineitems = relationship('LineItem')
 
 
     @classmethod
@@ -215,7 +226,7 @@ class Order(Base):
 
     # TODO: get values from config
     @classmethod
-    def __shipping_price(cls, subtotal):
+    def _shipping_price(cls, subtotal):
         if subtotal >= 30:
             return Decimal('0')
         elif subtotal >=15:
@@ -228,8 +239,8 @@ class Order(Base):
         subtotal = Decimal('0')
         taxes = Decimal('0')
         for lineitem in self.lineitems:
-            subtotal += lineitem.price
-            taxes += lineitem.tax
+            subtotal += lineitem.price * lineitem.quantity
+            taxes += lineitem.tax * lineitem.quantity
 
         return subtotal, taxes
 
@@ -244,7 +255,7 @@ class Order(Base):
         return getattr(t, text_name)
 
 
-class LineItems(Base):
+class LineItem(Base):
     __tablename__ = 'lineitems'
 
     order_ref = Column(INTEGER(unsigned=True), ForeignKey('orders.id'), nullable=False, primary_key=True)

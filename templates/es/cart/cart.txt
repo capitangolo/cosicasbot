@@ -1,0 +1,29 @@
+Tienes {{ items|length }} productos en tu carrito de {{ catalogs|length }} tiendas:
+
+# for catalog in catalogs
+Productos de '{{ catalog['name'] }}':
+
+# for item in catalog['items']
+{% include 'cart/_cartitem.txt' %}
+
+# endfor
+Subtotal: {{ '%.2f'|format( catalog['subtotal'] ) }}€
+Envío: {{ '%.2f'|format( catalog['shipping'] ) }}€
+IVA: {{ '%.2f'|format( catalog['tax'] ) }}€
+Total: {{ '%.2f'|format( catalog['total'] ) }}€
+
+----
+
+# endfor
+
+Se facturarán a:
+{{ user.name }} {{ user.lastname }}
+{{ user.vat_id }}
+{{ user.invoice_address }}
+
+
+Se enviarán a:
+{{ user.name }} {{ user.lastname }}
+{{ user.email_address }}
+{{ user.phone_number }}
+{{ user.shipping_address }}

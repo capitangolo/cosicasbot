@@ -1,0 +1,3 @@
+¿Seguro que quieres cancelar tu pedido {{ '#' }}{{ order.id }} en {{ order.catalog.name }}?
+
+Los {{ order.lineitems|length }} productos del pedido se añadirán a tu carrito de la compra.

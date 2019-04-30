@@ -37,10 +37,31 @@ def _menu_orders(t, ctxt, orders):
     return options, params
 
 
-def _menu_browse_order(t, ctxt):
+def _menu_browse_order(t, ctxt, order):
     options = []
+    params = []
+
+    # TODO: Translate
+    if order.status is OrderStatus.received:
+        options.append( [['Cancel', confirm_cancel_order]] )
+        params.append( [str(order.id)] )
+
     options.append( [[t.action_back, orders]] )
-    return options
+    params.append( [] )
+    return options, params
+
+
+def _menu_confirm_cancel_order(t, ctxt, order):
+    options = []
+    params = []
+
+    # TODO: Translate
+    options.append( [['Cancel Order', cancel_order]] )
+    params.append( [str(order.id)] )
+
+    options.append( [[t.action_back, browse_order]] )
+    params.append( [str(order.id)] )
+    return options, params
 
 
 @requires_registered
@@ -61,13 +82,62 @@ def browse_order(model, ctxt, chat, args):
 
     conn = model.db()
     order = conn.query(Order).filter_by(id = order_id, user_ref = ctxt.user_id).one()
-    options = _menu_browse_order(model.cfg.t, ctxt)
 
     if not order:
         return
 
+    options, params = _menu_browse_order(model.cfg.t, ctxt, order)
+
     chat.clean_options()
     status = order.status_display(model.cfg.t)
-    chat.replyTemplate('orders/order', options, [], order = order, status = status)
+    chat.replyTemplate('orders/order', options, params, order = order, status = status)
     conn.close()
 
+
+@requires_registered
+def confirm_cancel_order(model, ctxt, chat, args):
+    order_id = int(args)
+
+    conn = model.db()
+    order = conn.query(Order).filter_by(id = order_id, user_ref = ctxt.user_id, status = OrderStatus.received).one()
+
+    if not order:
+        return
+
+    options, params = _menu_confirm_cancel_order(model.cfg.t, ctxt, order)
+
+    chat.clean_options()
+    status = order.status_display(model.cfg.t)
+    chat.replyTemplate('orders/confirm_cancel', options, params, order = order)
+    conn.close()
+
+
+@requires_registered
+def cancel_order(model, ctxt, chat, args):
+    order_id = int(args)
+
+    conn = model.db()
+    order = conn.query(Order).filter_by(id = order_id, user_ref = ctxt.user_id, status = OrderStatus.received).one()
+
+    if not order:
+        return
+
+    for lineitem in order.lineitems:
+        cartitem = conn.query(CartItem).get( [ctxt.user_id, lineitem.product_ref, lineitem.product_model] )
+        if not cartitem:
+            cartitem = CartItem(
+                    user_ref = ctxt.user_id,
+                    product_ref = lineitem.product_ref,
+                    product_model = lineitem.product_model,
+                    quantity = 0
+            )
+            conn.add(cartitem)
+        cartitem.quantity += lineitem.quantity
+        conn.delete(lineitem)
+        conn.commit()
+
+    conn.delete(order)
+    conn.commit()
+    conn.close()
+
+    orders(model, ctxt, chat, args)
