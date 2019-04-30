@@ -205,7 +205,7 @@ def _browse_product(model, ctxt, chat, product_id = None, product_model = None, 
     if cctxt.all_photos:
         for photo in images:
             chat.replyPhoto(photo)
-    else:
+    elif images:
         chat.replyPhoto(images[0])
 
     chat.replyTemplate('catalog/product', options, params, product = product)

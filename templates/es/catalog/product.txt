@@ -1,8 +1,7 @@
 {{ product.name }}
+referencia: {{ product.id }}.{{ product.model }}
 
 {{ product.detail }}
 
-referencia: {{ product.id }}
-
-Precio: {{ '%.2f'|format( product.price ) }}
-Precio con IVA: {{ '%.2f'|format( product.price * (1 + product.tax) ) }}
+Precio: {{ '%.2f'|format( product.price ) }}€
+Precio con IVA: {{ '%.2f'|format( product.price * (1 + product.tax) ) }}€
