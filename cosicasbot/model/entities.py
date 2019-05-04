@@ -240,7 +240,7 @@ class Order(Base):
         taxes = Decimal('0')
         for lineitem in self.lineitems:
             subtotal += lineitem.price * lineitem.quantity
-            taxes += lineitem.tax * lineitem.quantity
+            taxes += lineitem.tax * lineitem.price * lineitem.quantity
 
         return subtotal, taxes
 

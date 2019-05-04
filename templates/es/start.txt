@@ -4,7 +4,7 @@ Soy {{ model.cfg.botname }} v{{ model.cfg.version}}, asistente de compras. Conmi
 
 Usa /start para mostrar este mensaje.
 
-# if not ctxt.user
+# if not ctxt.user_id
 No estás registrado 🤔. De momento puedes cotillear algunas tiendas, pero tendrás que registrarte para comprar
 
 # endif
