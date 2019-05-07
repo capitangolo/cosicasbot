@@ -164,8 +164,8 @@ def upgrade():
     )
 
     op.create_index(
-        PRODUCT_TABLE_NAME,
         PRODUCT_SORT_BY_NAME,
+        PRODUCT_TABLE_NAME,
         ['catalog_ref', 'weight', 'name']
     )
 
@@ -178,7 +178,7 @@ def upgrade():
     op.create_foreign_key(
         PRODUCT_SOURCE_FK_NAME,
         PRODUCT_TABLE_NAME, PRODUCT_TABLE_NAME,
-        ['product_source'], ['id']
+        ['source_ref', 'source_model'], ['id', 'model']
     )
 
 
