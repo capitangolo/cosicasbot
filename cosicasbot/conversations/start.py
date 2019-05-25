@@ -36,8 +36,7 @@ def _menu_start_options(t, ctxt, cart_items, is_admin):
     ]
 
     if cart_items > 0:
-        # TODO: Translate
-        options.append( [['🛒 Shopping cart - {} items'.format(cart_items), _start_cart]] )
+        options.append( [[t.action_cart_browse.format(cart_items), _start_cart]] )
 
     if is_admin:
         options.append( [[t.action_admin, _start_admin]] )

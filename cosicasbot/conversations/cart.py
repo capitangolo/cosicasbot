@@ -66,8 +66,8 @@ def check_cart(model, ctxt, chat, text):
 
     t = model.cfg.t
     options = [
-        [['Checkout', checkout]],
-        [['Clear', clear_cart]],
+        [[t.action_cart_checkout, checkout]],
+        [[t.action_cart_clear, clear_cart]],
         [[t.action_back, _end_conversation]]
     ]
     chat.replyTemplate('cart/cart', options, [], items = items, catalogs = catalogs_by_id.values(), user = user)

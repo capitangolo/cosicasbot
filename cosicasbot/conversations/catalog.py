@@ -7,6 +7,10 @@ from math import ceil
 from ..model.context import Conversation
 from ..model.entities import *
 
+#TODO: Remove this dependency
+from sqlalchemy import func
+
+
 __name__ = 'Catalog'
 
 def _commands():
@@ -24,7 +28,7 @@ def _end_catalogs(model, ctxt, chat, args):
     ctxt.conversations.end(model, ctxt, chat, args)
 
 
-def _menu_catalogs(t, ctxt, catalogs):
+def _menu_catalogs(t, ctxt, catalogs, cart_items):
     options = []
     params = []
 
@@ -32,12 +36,16 @@ def _menu_catalogs(t, ctxt, catalogs):
         options.append( [[catalog.name, browse_catalog]] )
         params.append( [str(catalog.id)] )
 
+    if cart_items > 0:
+        options.append( [[t.action_cart_browse.format(cart_items), _start_cart]] )
+        params.append( [] )
+
     options.append( [[t.action_back, _end_catalogs]] )
     params.append( [] )
     return options, params
 
 
-def _menu_products(t, products, page, page_count):
+def _menu_products(t, products, page, page_count, cart_items):
     options = []
     params = []
 
@@ -55,26 +63,30 @@ def _menu_products(t, products, page, page_count):
         options.append( [[ '⏩', _update_catalog_page ]] )
         params.append( [str( page + 1)] )
 
+    if cart_items > 0:
+        options.append( [[t.action_cart_browse.format(cart_items), _start_cart]] )
+        params.append( [] )
 
     options.append( [[t.action_back, catalogs]] )
     params.append( [] )
     return options, params
 
 
-def _menu_product(t, product, images, cctxt):
+def _menu_product(t, product, images, cctxt, cart_items):
     options = []
     params = []
 
     image_count = len(images)
     if image_count > 1:
-        # TODO: Translate
-        options.append( [['View all {} pictures'.format(len(images)), browse_product]] )
+        options.append( [[t.action_product_view_photos.format(len(images)), browse_product]] )
         params.append( [str(product.id), str(product.model), str('True')] )
 
-    # TODO: Translate
-    options.append( [['Add to Shopping Cart'.format(len(images)), _start_add_to_cart]] )
+    options.append( [[t.action_cart_add.format(len(images)), _start_add_to_cart]] )
     params.append( [str(product.id), str(product.model)] )
 
+    if cart_items > 0:
+        options.append( [[t.action_cart_browse.format(cart_items), _start_cart]] )
+        params.append( [] )
 
     options.append( [[t.action_back, browse_catalog]] )
     params.append( [str(product.catalog_ref), str(cctxt.catalog_page)] )
@@ -89,9 +101,12 @@ def catalogs(model, ctxt, chat, args):
 
 def list_user_catalogs(model, ctxt, chat, args):
     conn = model.db()
+
+    cart_items = conn.query(func.count(CartItem.user_ref)).filter_by(user_ref = ctxt.user_id).scalar()
+
     # TODO: Paginate
     catalogs = Catalog.for_user(conn, ctxt.user_id)
-    options, params = _menu_catalogs(model.cfg.t, ctxt, catalogs)
+    options, params = _menu_catalogs(model.cfg.t, ctxt, catalogs, cart_items)
     conn.close()
 
     chat.clean_options()
@@ -143,7 +158,7 @@ def _browse_catalog_page(model, ctxt, chat, catalog_id = None, page = None, upda
 
     conn = model.db()
     catalog = Catalog.by_id_for(conn, cctxt.catalog_id, ctxt.user_id)
-    options, params = _options_for_page(conn, model.cfg.t, catalog, chat, cctxt.catalog_page)
+    options, params = _options_for_page(conn, model, ctxt, chat, catalog, cctxt.catalog_page)
 
     if options:
         if update:
@@ -155,7 +170,9 @@ def _browse_catalog_page(model, ctxt, chat, catalog_id = None, page = None, upda
     conn.close()
 
 
-def _options_for_page(conn, t, catalog, chat, page):
+def _options_for_page(conn, model, ctxt, chat, catalog, page):
+    t = model.cfg.t
+
     page_size = 5 # TODO: Get this from chat, may be different per interface.
     pages = ceil(catalog.product_count(conn) / page_size)
 
@@ -163,7 +180,10 @@ def _options_for_page(conn, t, catalog, chat, page):
         return None, None
 
     products = catalog.product_page(conn, page, page_size)
-    options, params = _menu_products(t, products, page, pages)
+
+    cart_items = conn.query(func.count(CartItem.user_ref)).filter_by(user_ref = ctxt.user_id).scalar()
+
+    options, params = _menu_products(t, products, page, pages, cart_items)
 
     return options, params
 
@@ -198,7 +218,10 @@ def _browse_product(model, ctxt, chat, product_id = None, product_model = None, 
     conn = model.db()
     product = Product.by_id_from_catalog_for(conn, cctxt.product_id, cctxt.product_model, cctxt.catalog_id, ctxt.user_id)
     images = model.uploads.photos_for_product(cctxt.catalog_id, cctxt.product_id)
-    options, params = _menu_product(model.cfg.t, product, images, cctxt)
+
+    cart_items = conn.query(func.count(CartItem.user_ref)).filter_by(user_ref = ctxt.user_id).scalar()
+
+    options, params = _menu_product(model.cfg.t, product, images, cctxt, cart_items)
 
     chat.clean_options()
 
@@ -236,3 +259,30 @@ def _start_add_to_cart(model, ctxt, chat, text):
 
     chat.clean_options()
     entry(model, ctxt, chat, text)
+
+
+def _start_cart(model, ctxt, chat, text):
+    conversation, entry = cart.check_cart_conversation()
+
+    chat.clean_options()
+
+    ctxt.conversations.current().resume = _resume
+
+    ctxt.conversations.start(conversation)
+
+    chat.clean_options()
+    entry(model, ctxt, chat, text)
+
+
+def _resume(model, ctxt, chat, text):
+    cctxt = ctxt.conversations.current().ctxt
+
+    if cctxt.catalog_id is None:
+        return catalogs(model, ctxt, chat, text)
+
+    if cctxt.product_id is None:
+        return browse_catalog(model, ctxt, chat, text)
+
+    return _browse_product(model, ctxt, chat, text)
+
+

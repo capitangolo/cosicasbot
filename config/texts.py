@@ -28,8 +28,20 @@ action_signup_edit_shipping = 'Cambiar dir. envío'
 # Actions - Catalog
 action_browse_catalogs = '🛍 Cotillear tiendas'
 
+
 # Actions - Orders
 action_browse_orders = '🗂 Consultar pedidos'
+
+
+# Actions - Products
+action_product_view_photos = '🖼 Todas las fotos ({})'
+
+
+# Shopping cart
+action_cart_add = '🛒 Añadir al carrito'
+action_cart_browse = '🛒 Carrito ({})'
+action_cart_checkout = '💶 Confirmar pedido'
+action_cart_clear = '🧹 Vaciar carrito'
 
 
 # Order Status
