@@ -164,6 +164,8 @@ class Catalog(Base):
 
         if tag_values:
             query = query.filter(or_(Product.filter_tag_value == None, Product.filter_tag_value.in_(tag_values)))
+        else:
+            query = query.filter(Product.filter_tag_value == None)
 
         return query.count()
 
@@ -176,6 +178,8 @@ class Catalog(Base):
 
         if tag_values:
             query = query.filter(or_(Product.filter_tag_value == None, Product.filter_tag_value.in_(tag_values)))
+        else:
+            query = query.filter(Product.filter_tag_value == None)
 
         query = query.order_by(Product.weight, Product.name)
         query = query.offset(page * page_size).limit(page_size)
