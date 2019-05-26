@@ -27,6 +27,9 @@ action_signup_edit_shipping = 'Cambiar dir. envío'
 
 # Actions - Catalog
 action_browse_catalogs = '🛍 Cotillear tiendas'
+action_catalog_next_products = '⏩ Más productos'
+action_catalog_prev_products = '⏪ Productos anteriores'
+
 
 
 # Actions - Orders

@@ -50,7 +50,7 @@ def _menu_products(t, products, page, page_count, cart_items):
     params = []
 
     if page > 0:
-        options.append( [[ '⏪', _update_catalog_page ]] )
+        options.append( [[ t.action_catalog_prev_products, _update_catalog_page ]] )
         params.append( [str( page - 1)] )
 
     for product in products:
@@ -60,7 +60,7 @@ def _menu_products(t, products, page, page_count, cart_items):
         params.append( [str(product.id), str(product.model), str('False')] )
 
     if page < page_count - 1:
-        options.append( [[ '⏩', _update_catalog_page ]] )
+        options.append( [[ t.action_catalog_next_products, _update_catalog_page ]] )
         params.append( [str( page + 1)] )
 
     if cart_items > 0:
@@ -173,13 +173,17 @@ def _browse_catalog_page(model, ctxt, chat, catalog_id = None, page = None, upda
 def _options_for_page(conn, model, ctxt, chat, catalog, page):
     t = model.cfg.t
 
+    tags = []
+    if catalog.product_filter_tag:
+        tags = Group.tag_values_for_user(conn, catalog.product_filter_tag, ctxt.user_id)
+
     page_size = 5 # TODO: Get this from chat, may be different per interface.
-    pages = ceil(catalog.product_count(conn) / page_size)
+    pages = ceil(catalog.product_count(conn, tag_values = tags) / page_size)
 
     if page is None or page < 0 or page >= pages:
         return None, None
 
-    products = catalog.product_page(conn, page, page_size)
+    products = catalog.product_page(conn, page, page_size, tag_values = tags)
 
     cart_items = conn.query(func.count(CartItem.user_ref)).filter_by(user_ref = ctxt.user_id).scalar()
 

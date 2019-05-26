@@ -113,7 +113,8 @@ def upgrade():
         CATALOG_TABLE_NAME,
         sa.Column('id', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('name', sa.Unicode(255), nullable=False, default=''),
-        sa.Column('group_ref', my.INTEGER(unsigned=True), nullable=False)
+        sa.Column('group_ref', my.INTEGER(unsigned=True), nullable=False),
+        sa.Column('product_filter_tag', sa.Unicode(255))
     )
 
     op.create_foreign_key(
@@ -129,6 +130,7 @@ def upgrade():
         sa.Column('user_ref', my.INTEGER(unsigned=True), nullable=False),
 
         sa.Column('catalog_ref', my.INTEGER(unsigned=True), nullable=False),
+        sa.Column('filter_tag_value', sa.Unicode(255))
 
         sa.Column('status', sa.Enum(OrderStatus), default=OrderStatus.received),
         sa.Column('shipping_price', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
@@ -152,6 +154,7 @@ def upgrade():
         sa.Column('id', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('model', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('catalog_ref', my.INTEGER(unsigned=True), nullable=False),
+        sa.Column('filter_tag_value', sa.Unicode(255)),
         sa.Column('weight', my.INTEGER, nullable=False, default=10),
         sa.Column('active', sa.Boolean, nullable=False, default=True),
         sa.Column('name', sa.Unicode(255), nullable=False, default=''),

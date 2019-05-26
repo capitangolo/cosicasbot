@@ -3,7 +3,8 @@
 
 from decimal import Decimal
 import enum
-from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Boolean, Unicode, Enum, Numeric, Text, and_
+import json
+from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Boolean, Unicode, Enum, Numeric, Text, and_, or_
 from sqlalchemy.dialects.mysql import INTEGER, BIGINT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -33,6 +34,24 @@ class Group(Base):
     # - Role added
     # - Role modified
     # - Role deleted
+
+
+    @classmethod
+    def tag_values_for_user(cls, conn, tag, user_id):
+        query = conn.query(Group)
+        query = query.join(Group.roles)
+        query = query.filter(Role.user_ref == user_id)
+
+        groups = query.all()
+
+        values = []
+        for group in groups:
+            if group.payload:
+                payload = json.loads(group.payload)
+                if tag in payload:
+                    values.append(payload[tag])
+
+        return values
 
 
 class User(Base):
@@ -113,6 +132,8 @@ class Catalog(Base):
     name = Column(Unicode(255), nullable=False, default='')
     group_ref = Column(INTEGER(unsigned=True), ForeignKey('groups.id'), primary_key=True)
 
+    product_filter_tag = Column(Unicode(255))
+
     products = relationship('Product')
     group = relationship('Group', uselist=False)
 
@@ -135,12 +156,27 @@ class Catalog(Base):
         return query.one()
 
 
-    def product_count(self, conn):
-        return conn.query(Product).filter_by(catalog_ref=self.id).count()
-
-
-    def product_page(self, conn, page, page_size):
+    def product_count(self, conn, only_active = True, tag_values = None):
         query = conn.query(Product).filter_by(catalog_ref=self.id)
+
+        if only_active:
+            query = query.filter(Product.active == True)
+
+        if tag_values:
+            query = query.filter(or_(Product.filter_tag_value == None, Product.filter_tag_value.in_(tag_values)))
+
+        return query.count()
+
+
+    def product_page(self, conn, page, page_size, only_active = True, tag_values = None):
+        query = conn.query(Product).filter_by(catalog_ref=self.id)
+
+        if only_active:
+            query = query.filter(Product.active == True)
+
+        if tag_values:
+            query = query.filter(or_(Product.filter_tag_value == None, Product.filter_tag_value.in_(tag_values)))
+
         query = query.order_by(Product.weight, Product.name)
         query = query.offset(page * page_size).limit(page_size)
         return query.all()
@@ -161,6 +197,7 @@ class Product(Base):
     source_model = Column(INTEGER(unsigned=True), nullable=True)
 
     detail = Column(Unicode(255), nullable=False, default='')
+    filter_tag_value = Column(Unicode(255))
 
     __table_args__ = (ForeignKeyConstraint([source_ref, source_model],
                                            [id, model]),
