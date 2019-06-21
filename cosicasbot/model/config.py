@@ -14,6 +14,8 @@ class Config:
     CONFIG_OPTIONS = [
         ConfigOption('botname', None, True),
 
+        ConfigOption('debug', None, True),
+
         ConfigOption('db_url', None, True),
         ConfigOption('templates_folder', None, True),
         ConfigOption('uploads_folder', None, True),
@@ -24,7 +26,14 @@ class Config:
         ConfigOption('telegram_botname', None, False),  # For documentation purposes, not used.
         ConfigOption('telegram_apikey', None, False),
 
-        ConfigOption('texts_module', 'config.texts', True)
+        ConfigOption('texts_module', 'config.texts', True),
+
+        ConfigOption('web_secret', None, False),
+        ConfigOption('web_db_name', None, False),
+        ConfigOption('web_db_user', None, False),
+        ConfigOption('web_db_pass', None, False),
+        ConfigOption('web_db_host', None, False),
+        ConfigOption('web_db_port', None, False),
     ]
 
 
@@ -32,14 +41,18 @@ class Config:
         self.version = version
         with open(config_file) as json_data_file:
             config = json.load(json_data_file)
+
             for option in self.CONFIG_OPTIONS:
                 value = None
+                defined = False
                 if option.name in config:
                     value = config[option.name]
+                    defined = True
                 elif option.default:
                     value = option.default
+                    defined = True
 
-                if value:
+                if defined:
                     setattr(self, option.name, value)
                 elif option.required:
                     error = 'Error parsing configuration. Missing required paramenter: {}'.format(option.name)
