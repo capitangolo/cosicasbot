@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from ..filters import *
-from . import signup, catalog, admin, orders, cart
+from . import signup, catalog, admin, orders, cart, admin_orders
 from ..model.context import Conversation
 from ..model.entities import *
 
@@ -26,7 +26,7 @@ def start_conversation():
     return Conversation(cancel)
 
 
-def _menu_start_options(t, ctxt, cart_items, is_admin):
+def _menu_start_options(t, ctxt, cart_items, is_admin, has_admin_catalogs):
     signup_text = t.action_signup_edit if ctxt.user_id else t.action_signup
 
     options = [
@@ -40,6 +40,9 @@ def _menu_start_options(t, ctxt, cart_items, is_admin):
 
     if is_admin:
         options.append( [[t.action_admin, _start_admin]] )
+
+    if has_admin_catalogs:
+        options.append( [[t.action_admin_orders, _start_admin_orders]] )
 
     options.append( [[t.action_do_nothing, cancel]] )
 
@@ -55,10 +58,14 @@ def start(model, ctxt, chat, args):
     admin_group = model.cfg.groups_admin_id
     admin_role = RoleLevel.admin
     is_admin = ctxt.user_id and Role.exists_for_user_in_group(conn, admin_role, ctxt.user_id, admin_group)
+
+    admin_catalogs = Catalog.for_admin_user(conn, ctxt.user_id)
+    has_admin_catalogs = admin_catalogs and len(admin_catalogs) > 0
+
     conn.close()
 
     chat.clean_options()
-    chat.replyTemplate('start', _menu_start_options(model.cfg.t, ctxt, cart_items, is_admin), [], model=model, ctxt=ctxt, chat=chat)
+    chat.replyTemplate('start', _menu_start_options(model.cfg.t, ctxt, cart_items, is_admin, has_admin_catalogs), [], model=model, ctxt=ctxt, chat=chat)
 
 
 def cancel(model, ctxt, chat, text):
@@ -91,6 +98,11 @@ def _start_cart(model, ctxt, chat, text):
 @requires_superadmin
 def _start_admin(model, ctxt, chat, text):
     conversation, entry = admin.admin_conversation()
+    _start_conversation(conversation, entry, model, ctxt, chat, text)
+
+
+def _start_admin_orders(model, ctxt, chat, text):
+    conversation, entry = admin_orders.admin_orders_conversation()
     _start_conversation(conversation, entry, model, ctxt, chat, text)
 
 

@@ -14,7 +14,7 @@ import logging
 from cosicasbot.model.config import Config
 import os
 
-VERSION = '1.0.15'
+VERSION = '1.0.16'
 
 cosicas_config_path = os.environ['COSICASBOT_CONFIG']
 

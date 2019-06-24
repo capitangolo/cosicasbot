@@ -9,5 +9,8 @@ __all__ = [
 # Shop
     'catalog',
     'cart',
-    'orders'
+    'orders',
+
+# Admin
+    'admin_orders',
 ]

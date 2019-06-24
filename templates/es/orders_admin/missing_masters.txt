@@ -1,0 +1,9 @@
+Faltan los archivos maestros para los siguientes productos:
+
+# for manager, products in missing.items():
+{{ manager }}:
+# for product in products:
+{{ product.id }}.{{ product.model }} {{ product.name }}
+# endfor
+{{ ' ' }}
+# endfor

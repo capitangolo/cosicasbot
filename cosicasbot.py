@@ -5,14 +5,14 @@ import argparse
 from cosicasbot.bot import Bot
 from cosicasbot.conversations import *
 from cosicasbot.interfaces import *
-from cosicasbot.model import config, model
+from cosicasbot.model import config, model, masters
 import logging
 import unicodedata
 
 from cosicasbot.model import context
 
 
-VERSION = '1.0.15'
+VERSION = '1.0.16'
 
 
 INTERFACES = [
@@ -45,6 +45,18 @@ def parse_args():
     return parser.parse_args()
 
 
+def load_masters(cfg):
+    managers = []
+    uploads_path = cfg.uploads_folder
+
+    # 38mm Badges
+    managers.append(masters.BadgeMasterManager(uploads_path, 'badge_38mm', 520, 450, 'watermark.png'))
+    # 50mm Badges
+    managers.append(masters.BadgeMasterManager(uploads_path, 'badge_59mm', 709, 610, 'watermark.png'))
+
+    return managers
+
+
 def main():
     args = parse_args()
 
@@ -54,7 +66,8 @@ def main():
     logger.info('Starting cosicasbot v{} for {}'.format(VERSION, cfg.botname))
 
     logger.info('Loading model')
-    m = model.Model(logger, cfg, start.start_conversation)
+    masters = load_masters(cfg)
+    m = model.Model(logger, cfg, start.start_conversation, masters)
 
     logger.info('Loading bot')
     bot = Bot(m, start.start)

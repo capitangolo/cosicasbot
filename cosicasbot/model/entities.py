@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import datetime
 from decimal import Decimal
 import enum
 import json
-from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Boolean, Unicode, Enum, Numeric, Text, and_, or_
+from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Boolean, Unicode, Enum, Numeric, Text, TIMESTAMP, and_, or_
 from sqlalchemy.dialects.mysql import INTEGER, BIGINT
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -130,7 +131,7 @@ class Catalog(Base):
 
     id = Column(INTEGER(unsigned=True), primary_key=True)
     name = Column(Unicode(255), nullable=False, default='')
-    group_ref = Column(INTEGER(unsigned=True), ForeignKey('groups.id'), primary_key=True)
+    group_ref = Column(INTEGER(unsigned=True), ForeignKey('groups.id'))
 
     product_filter_tag = Column(Unicode(255))
 
@@ -148,12 +149,31 @@ class Catalog(Base):
 
 
     @classmethod
+    def for_admin_user(cls, conn, user_id):
+        query = conn.query(Catalog)
+        query = query.join(Catalog.group)
+        query = query.join(Group.roles)
+        query = query.filter(Role.user_ref == user_id, Role.role == RoleLevel.admin)
+        return query.all()
+
+
+    @classmethod
     def by_id_for(cls, conn, catalog_id, user_id):
         query = conn.query(Catalog)
         query = query.join(Catalog.group)
         query = query.join(Group.roles)
         query = query.filter(Catalog.id == catalog_id, Role.user_ref == user_id)
         return query.one()
+
+
+    @classmethod
+    def count_by_id_for_admin(cls, conn, catalog_id, user_id):
+        query = conn.query(Catalog)
+        query = query.join(Catalog.group)
+        query = query.join(Group.roles)
+        query = query.filter(Catalog.id == catalog_id, Role.user_ref == user_id, Role.role == RoleLevel.admin)
+
+        return query.count()
 
 
     def product_count(self, conn, only_active = True, tag_values = None):
@@ -243,8 +263,9 @@ class Order(Base):
     id = Column(INTEGER(unsigned=True), primary_key=True)
     user_ref = Column(INTEGER(unsigned=True), ForeignKey('users.id'), nullable=False)
     catalog_ref = Column(INTEGER(unsigned=True), ForeignKey('catalogs.id'), nullable=False)
-    status = Column(Enum(OrderStatus), default=OrderStatus.received)
 
+    status = Column(Enum(OrderStatus), default=OrderStatus.received)
+    created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.utcnow)
     shipping_price = Column(Numeric(precision=10, scale=2), nullable=False, default=0)
     shipping_tax = Column(Numeric(precision=10, scale=2), nullable=False, default=0)
 
@@ -263,6 +284,11 @@ class Order(Base):
     @classmethod
     def for_user(cls, conn, user_id):
         return conn.query(Order).filter_by(user_ref = user_id).all()
+
+
+    @classmethod
+    def open_for_catalog(cls, conn, catalog_id):
+        return conn.query(Order).filter(Order.catalog_ref == catalog_id, Order.status != 'shipped').all()
 
 
     # TODO: get values from config
@@ -332,6 +358,11 @@ class CartItem(Base):
 
     user = relationship('User', uselist=False)
     product = relationship('Product', uselist=False)
+
+    @classmethod
+    def for_catalog(cls, conn, catalog_id):
+        return conn.query(CartItem).join(CartItem.product).filter(Product.catalog_ref == catalog_id).all()
+
 
 
 class Discount(Base):

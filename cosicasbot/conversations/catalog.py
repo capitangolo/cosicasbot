@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import io
 from ..filters import *
 from . import start, cart
 from math import ceil
@@ -221,7 +222,9 @@ def _browse_product(model, ctxt, chat, product_id = None, product_model = None, 
 
     conn = model.db()
     product = Product.by_id_from_catalog_for(conn, cctxt.product_id, cctxt.product_model, cctxt.catalog_id, ctxt.user_id)
-    images = model.uploads.photos_for_product(cctxt.catalog_id, cctxt.product_id)
+    images = []
+    images += model.watermarks_for(product)
+    images += model.uploads.photos_for_product(cctxt.catalog_id, cctxt.product_id)
 
     cart_items = conn.query(func.count(CartItem.user_ref)).filter_by(user_ref = ctxt.user_id).scalar()
 

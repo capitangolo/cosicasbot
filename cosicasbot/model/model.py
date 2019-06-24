@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 class Model:
 
 
-    def __init__(self, logger, config, default_conversation_generator):
+    def __init__(self, logger, config, default_conversation_generator, masters = []):
         # Logger
         self.log = logger
 
@@ -30,10 +30,14 @@ class Model:
         # Uploads
         self.uploads = uploads.UploadManager(self.cfg.uploads_folder)
 
+        # Masters
+        self.masters = masters
+
         # User Sessions
         self.default_conversation_generator = default_conversation_generator
         self.user_sessions = context.UserContexts(user_id_property = 'user_id', start = self.default_conversation_generator)
         self.visitor_sessions = {}
+
 
     def db(self):
         return self.db_sessionmaker()
@@ -52,3 +56,24 @@ class Model:
         if interface not in self.visitor_sessions:
             self.visitor_sessions[interface] = context.UserContexts(user_id_property = 'visitor_id', start = self.default_conversation_generator)
         return self.visitor_sessions[interface].context_for(user_id)
+
+
+    def watermarks_for(self, product):
+        watermarks = []
+        for manager in self.masters:
+            image_path = manager.watermark_for(product)
+            if image_path:
+                watermarks.append(image_path)
+
+        return watermarks
+
+
+    def zip_masters_for(self, products):
+        zipfile = None
+        missing_all = {}
+        for manager in self.masters:
+            zipfile, missing = manager.zip_masters_for(products, zipfile)
+
+            missing_all[manager.masters_folder] = missing
+
+        return zipfile, missing_all

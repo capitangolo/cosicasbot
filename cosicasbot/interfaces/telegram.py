@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import csv
 from ..model.entities import *
 from functools import partial
+import io
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
 from telegram import MessageEntity, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, TelegramError
 import unicodedata
@@ -222,7 +224,7 @@ class TelegramChat:
         self.replyText(text, reply_options, inline_args)
 
 
-    def replyPhoto(self, photo_file_path, reply_options=None, inline_args=None,):
+    def replyPhoto(self, photo_file_path, reply_options=None, inline_args=None):
         keyboard, reply_markup = self._keyboard_for(reply_options, inline_args)
 
         if keyboard:
@@ -234,6 +236,39 @@ class TelegramChat:
                 photo_file,
                 reply_markup=reply_markup
             )
+
+
+    def replyCSV(self, data, filename, reply_options=None, inline_args=None):
+        csv_string = io.StringIO()
+        csv_bytes = io.BytesIO()
+
+        csv_writer = csv.writer(csv_string)
+        csv_writer.writerows(data)
+
+        csv_string.seek(0)
+        csv_bytes.write(csv_string.read().encode('utf-8'))
+
+        csv_bytes.seek(0)
+
+        self.replyDocument(csv_bytes, filename, reply_options, inline_args)
+
+        csv_string.close()
+        csv_bytes.close()
+
+
+    def replyDocument(self, fileob, filename, reply_options=None, inline_args=None):
+        keyboard, reply_markup = self._keyboard_for(reply_options, inline_args)
+
+        if keyboard:
+            conversation = self.ctxt.conversations.current()
+            conversation.override_with(reply_options)
+
+        fileob.seek(0)
+        self.update.effective_chat.send_document(
+            fileob,
+            filename=filename,
+            reply_markup=reply_markup
+        )
 
 
     def callback_for_input(self, reply_options, input):

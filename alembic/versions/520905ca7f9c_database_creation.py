@@ -6,6 +6,7 @@ Create Date: 2019-04-17 21:35:13.048718
 
 """
 from alembic import op
+import datetime
 import enum
 import sqlalchemy as sa
 import sqlalchemy.dialects.mysql as my
@@ -128,11 +129,10 @@ def upgrade():
         ORDER_TABLE_NAME,
         sa.Column('id', my.INTEGER(unsigned=True), primary_key=True),
         sa.Column('user_ref', my.INTEGER(unsigned=True), nullable=False),
-
         sa.Column('catalog_ref', my.INTEGER(unsigned=True), nullable=False),
-        sa.Column('filter_tag_value', sa.Unicode(255))
 
         sa.Column('status', sa.Enum(OrderStatus), default=OrderStatus.received),
+        sa.Column('created_at', sa.TIMESTAMP, nullable=False, default=datetime.datetime.utcnow),
         sa.Column('shipping_price', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
         sa.Column('shipping_tax', sa.Numeric(precision=10, scale=2), nullable=False, default=0),
 

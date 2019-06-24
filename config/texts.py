@@ -31,9 +31,16 @@ action_catalog_next_products = '⏩ Más productos'
 action_catalog_prev_products = '⏪ Productos anteriores'
 
 
-
 # Actions - Orders
 action_browse_orders = '🗂 Consultar pedidos'
+
+
+# Actions - Orders Admin
+action_admin_orders = '💣🗂 Administrar pedidos'
+action_admin_orders_list_orders = '🗂 Listar pedidos'
+action_admin_orders_list_products = '📦 Listar productos'
+action_admin_orders_list_carts = '🛒 Listar carritos'
+action_admin_orders_dowload_masters = '🖼 Descargar masters'
 
 
 # Actions - Products

@@ -47,6 +47,28 @@ def requires_superadmin(func):
     return wrapper_decorator
 
 
+def requires_catalog_admin(func):
+    @functools.wraps(func)
+    def wrapper_decorator(*args, **kwargs):
+        model = args[0]
+        ctxt = args[1]
+        chat = args[2]
+        t = model.cfg.t
+
+        conn = model.db()
+        catalog = Catalog.count_by_id_for_admin(conn, ctxt.catalog_id, ctxt.user_id)
+        conn.close()
+
+        if not catalog:
+            # silently ignore, do not tip the command.
+            model.log.warning("{} tried to access protected command {}.".format(chat.user_detail(), func.__name__))
+            return
+
+        value = func(*args, **kwargs)
+        return value
+    return wrapper_decorator
+
+
 def requires_text_length(length):
     def inner(func):
         @functools.wraps(func)
