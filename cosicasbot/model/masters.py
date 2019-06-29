@@ -4,6 +4,7 @@
 import io
 import os
 from PIL import Image, ImageDraw
+from unidecode import unidecode
 import zipfile
 
 class BadgeMasterManager:
@@ -72,12 +73,14 @@ class BadgeMasterManager:
 
 
     def filename_for(self, product):
-        return "{}_{}_{}_{}.png".format(
+        filename = "{}_{}_{}_{}.png".format(
                 product.catalog_ref,
                 product.id,
                 product.model,
                 product.name,
             )
+
+        return unidecode(filename)
 
 
     def apply_watermark(self, input_image, watermark_image):

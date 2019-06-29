@@ -12,7 +12,7 @@ import unicodedata
 from cosicasbot.model import context
 
 
-VERSION = '1.0.16'
+VERSION = '1.0.17'
 
 
 INTERFACES = [
