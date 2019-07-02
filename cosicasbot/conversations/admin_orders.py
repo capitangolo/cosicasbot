@@ -180,23 +180,19 @@ def download_product_summary_per_user(model, ctxt, chat, txt):
     summary = {}
     keys = ['user', 'telegram', 'filter_tag']
     for order in orders:
-        if order.user_ref not in summary:
-            summary[order.user_ref] = {
-                    'user': order.user_ref,
-                    'telegram': order.user.telegram_handle,
-                }
-
-        user_summary = summary[order.user_ref]
-
-        if not 'filter_tag' in user_summary:
-            for lineitem in order.lineitems:
-                if lineitem.product.filter_tag_value:
-                    user_summary['filter_tag'] = lineitem.product.filter_tag_value
-                    break
-
         for lineitem in order.lineitems:
             if not lineitem.product_ref in keys:
                 keys.append(lineitem.product_ref)
+
+            filter_tag = lineitem.product.filter_tag_value
+            order_key = "{}_{}".format(order.user_ref, filter_tag)
+            if order_key not in summary:
+                summary[order_key] = {
+                        'user': order.user_ref,
+                        'telegram': order.user.telegram_handle,
+                        'filter_tag': filter_tag
+                    }
+            user_summary = summary[order_key]
 
             quantity = lineitem.quantity
             if lineitem.product_ref in user_summary:
@@ -204,8 +200,8 @@ def download_product_summary_per_user(model, ctxt, chat, txt):
 
             user_summary[lineitem.product_ref] = quantity
 
-    data = [keys]
-    for user_ref, user_summary in summary.items():
+    data = [ keys ]
+    for user_key, user_summary in summary.items():
         data_line = []
         for key in keys:
             if key in user_summary:
