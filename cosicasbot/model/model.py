@@ -70,10 +70,12 @@ class Model:
 
     def zip_masters_for(self, products):
         zipfile = None
-        missing_all = {}
+        existing_all = set()
+
         for manager in self.masters:
-            zipfile, missing = manager.zip_masters_for(products, zipfile)
+            zipfile, existing = manager.zip_masters_for(products, zipfile)
+            existing_all.update(existing)
 
-            missing_all[manager.masters_folder] = missing
+        missing = set(products).difference(existing_all)
 
-        return zipfile, missing_all
+        return zipfile, missing

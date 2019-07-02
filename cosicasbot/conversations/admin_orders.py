@@ -64,6 +64,7 @@ def _menu_admin_catalog(t, ctxt):
     options = [
         [[ t.action_admin_orders_list_orders, download_open_orders ]],
         [[ t.action_admin_orders_list_products, download_product_sumary ]],
+        [[ "USER SUMMARY", download_product_summary_per_user ]],
         [[ t.action_admin_orders_list_carts, download_cartitems ]],
         [[ t.action_admin_orders_dowload_masters, download_masters ]],
     ]
@@ -132,7 +133,6 @@ def download_open_orders(model, ctxt, chat, txt):
     chat.replyCSV(data, filename)
 
 
-
 @requires_catalog_admin
 def download_product_sumary(model, ctxt, chat, txt):
     conn = model.db()
@@ -169,6 +169,53 @@ def download_product_sumary(model, ctxt, chat, txt):
     filename = "{}_{}_{}.csv".format("summary", ctxt.catalog_id, datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
     chat.replyCSV(data, filename)
 
+
+
+@requires_catalog_admin
+def download_product_summary_per_user(model, ctxt, chat, txt):
+    conn = model.db()
+
+    orders = Order.open_for_catalog(conn, ctxt.catalog_id)
+
+    summary = {}
+    keys = ['user', 'telegram', 'filter_tag']
+    for order in orders:
+        if order.user_ref not in summary:
+            summary[order.user_ref] = {
+                    'user': order.user_ref,
+                    'telegram': order.user.telegram_handle,
+                }
+
+        user_summary = summary[order.user_ref]
+
+        if not 'filter_tag' in user_summary:
+            for lineitem in order.lineitems:
+                if lineitem.product.filter_tag_value:
+                    user_summary['filter_tag'] = lineitem.product.filter_tag_value
+                    break
+
+        for lineitem in order.lineitems:
+            if not lineitem.product_ref in keys:
+                keys.append(lineitem.product_ref)
+
+            quantity = lineitem.quantity
+            if lineitem.product_ref in user_summary:
+                quantity += user_summary[lineitem.product_ref]
+
+            user_summary[lineitem.product_ref] = quantity
+
+    data = [keys]
+    for user_ref, user_summary in summary.items():
+        data_line = []
+        for key in keys:
+            if key in user_summary:
+                data_line.append(user_summary[key])
+            else:
+                data_line.append('')
+        data.append(data_line)
+
+    filename = "{}_{}_{}.csv".format("user_summary", ctxt.catalog_id, datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+    chat.replyCSV(data, filename)
 
 
 @requires_catalog_admin

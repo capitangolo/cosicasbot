@@ -128,17 +128,18 @@ class BadgeMasterManager:
 
         zipfile_ob = zipfile.ZipFile(masterszip, 'w', compression=zipfile.ZIP_DEFLATED)
 
-        missing = []
+        existing = []
 
         for product in products:
             master_path = self.master_for(product)
 
             if not master_path:
-                missing.append(product)
                 continue
+
+            existing.append(product)
 
             filename = os.path.join('masters', self.masters_folder, self.filename_for(product))
 
             zipfile_ob.write(master_path, arcname=filename)
 
-        return masterszip, missing
+        return masterszip, existing
