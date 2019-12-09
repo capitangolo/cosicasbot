@@ -141,5 +141,6 @@ class BadgeMasterManager:
             filename = os.path.join('masters', self.masters_folder, self.filename_for(product))
 
             zipfile_ob.write(master_path, arcname=filename)
+        zipfile_ob.close()
 
         return masterszip, existing
