@@ -123,10 +123,12 @@ class BadgeMasterManager:
 
 
     def zip_masters_for(self, products, masterszip = None):
+        file_mode = 'a'
         if not masterszip:
             masterszip = io.BytesIO()
+            file_mode = 'w'
 
-        zipfile_ob = zipfile.ZipFile(masterszip, 'w', compression=zipfile.ZIP_DEFLATED)
+        zipfile_ob = zipfile.ZipFile(masterszip, file_mode, compression=zipfile.ZIP_DEFLATED)
 
         existing = []
 
@@ -138,7 +140,7 @@ class BadgeMasterManager:
 
             existing.append(product)
 
-            filename = os.path.join('masters', self.masters_folder, self.filename_for(product))
+            filename = os.path.join('/masters', self.masters_folder, self.filename_for(product).replace(" ","_"))
 
             zipfile_ob.write(master_path, arcname=filename)
         zipfile_ob.close()
