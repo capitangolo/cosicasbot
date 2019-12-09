@@ -52,7 +52,7 @@ def load_masters(cfg):
     # 38mm Badges
     managers.append(masters.BadgeMasterManager(uploads_path, 'badge_38mm', 520, 450, 'watermark.png'))
     # 50mm Badges
-    managers.append(masters.BadgeMasterManager(uploads_path, 'badge_59mm', 709, 610, 'watermark.png'))
+    managers.append(masters.BadgeMasterManager(uploads_path, 'badge_50mm', 709, 610, 'watermark.png'))
 
     return managers
 
