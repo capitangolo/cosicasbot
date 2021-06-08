@@ -3,7 +3,7 @@ Jinja2 == 2.10.1
 SQLAlchemy == 1.3
 PyMySQL == 0.9.3
 alembic == 1.0.8
-Pillow == 6.0.0
+Pillow == 8.2.0
 Unidecode == 1.1.1
 # Admin web
 # version 2.2 contins a bug that breaks PyMySQL
